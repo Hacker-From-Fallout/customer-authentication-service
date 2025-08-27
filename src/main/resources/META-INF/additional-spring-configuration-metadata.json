@@ -1,0 +1,47 @@
+{"properties": [
+    {
+        "name": "spring.kafka.topics.customer.create-profile",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.customer.create-profile'"
+    },
+    {
+        "name": "spring.kafka.topics.customer.update-username",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.customer.update-username'"
+    },
+    {
+        "name": "spring.kafka.topics.customer.delete-profile",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.customer.delete-profile'"
+    },
+    {
+        "name": "spring.kafka.topics.customer.update-phone-number",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.customer.update-phone-number'"
+    },
+    {
+        "name": "spring.kafka.topics.customer.update-email",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.customer.update-email'"
+    },
+    {
+        "name": "spring.kafka.topics.email-confirmation",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.email-confirmation'"
+    },
+    {
+        "name": "spring.kafka.topics.phone-number-confirmation",
+        "type": "java.lang.String",
+        "description": "A description for 'spring.kafka.topics.phone-number-confirmation'"
+    },
+    {
+        "name": "jwt.access-token-key",
+        "type": "java.lang.String",
+        "description": "A description for 'jwt.access-token-key'"
+    },
+    {
+        "name": "jwt.refresh-token-key",
+        "type": "java.lang.String",
+        "description": "A description for 'jwt.refresh-token-key'"
+    }
+]}

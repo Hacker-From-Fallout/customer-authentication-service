@@ -1,0 +1,50 @@
+server:
+    port: 8080
+spring:
+    application:
+        name: customer-authentication-service
+    data:
+        redis:
+            host: localhost
+            port: 6379
+    datasource:
+        url: jdbc:postgresql://localhost:5432/customer_authentication_db
+        driver-class-name: org.postgresql.Driver
+        username: root
+        password: password
+    jpa:
+        hibernate:
+            ddl-auto: none
+        show-sql: true
+        properties:
+            hibernate:
+                format-sql: true
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                default-schema: public
+    liquibase:
+        enabled: true
+        change-log: classpath:/db/changelog/db.changelog-master.yaml
+    kafka:
+        bootstrap-servers: 
+            - localhost:9092
+        admin:
+            auto-create: false
+        topics:
+            customer:
+                create-profile: create-customer-profile-topic
+                update-username: update-customer-username-topic
+                update-email: update-customer-email-topic
+                update-phone-number: update-customer-phone-number-topic
+                delete-profile: delete-customer-profile-topic
+            email-confirmation: email-confirmation-topic
+            phone-number-confirmation: phone-number-confirmation-topic
+jwt:
+    access-token-key: '{"kty":"oct","k":"hi7S5RX5ZRZooHA0RKGctZ-KtR9FoESgCnH-3BNg5XI"}'
+    refresh-token-key: '{"kty":"oct","k":"956PBFst1FguLr5irJD-aQ"}'
+logging:
+    level:
+        org:
+            springframework:
+                data:
+                    jpa: DEBUG
+            liquibase: DEBUG
