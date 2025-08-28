@@ -23,9 +23,13 @@ import com.marketplace.authentication.exception.exceptions.UserNotFoundException
 import com.marketplace.authentication.producers.CustomerUserProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.repositories.specifications.CustomerUserSpecifications;
+import com.marketplace.authentication.security.CryptoUtils;
+import com.marketplace.authentication.security.OtpService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DefaultCustomerUserService implements CustomerUserService {
@@ -33,6 +37,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
     private final CustomerUserRepository customerUserRepository;
     private final CustomerUserProducer customerUserProducer;
     private final PasswordEncoder bCyPasswordEncoder;
+    private final OtpService otpService;
+    private final CryptoUtils cryptoUtils;
 
     @Override
     @Transactional(readOnly = true)
@@ -272,23 +278,64 @@ public class DefaultCustomerUserService implements CustomerUserService {
 
     @Override
     @Transactional
-    public void updateEmailFactorAuthEnabled(Long id, boolean enabled) {
+    public void enableEmailFactorAuth(Long id) {
         ensureUserExists(id);
-        customerUserRepository.updateEmailFactorAuthEnabled(id, enabled);
+
+        String emailConfirmationCodeSecret = otpService.generateSecret();
+        String encryptedEmailConfirmationCodeSecret = cryptoUtils.encrypt(emailConfirmationCodeSecret);
+
+        customerUserRepository.updateEmailFactorAuthEnabled(id, true);
+        customerUserRepository.updateEncryptedEmailConfirmationCodeSecret(id, encryptedEmailConfirmationCodeSecret);
     }
 
     @Override
     @Transactional
-    public void updatePhoneNumberFactorAuthEnabled(Long id, boolean enabled) {
+    public void enablePhoneNumberFactorAuth(Long id) {
         ensureUserExists(id);
-        customerUserRepository.updatePhoneNumberFactorAuthEnabled(id, enabled);
+
+        String phoneNumberConfirmationCodeSecret = otpService.generateSecret();
+        String encryptedPhoneNumberConfirmationCodeSecret = cryptoUtils.encrypt(phoneNumberConfirmationCodeSecret);
+
+        customerUserRepository.updatePhoneNumberFactorAuthEnabled(id, true);
+        customerUserRepository.updateEncryptedPhoneNumberConfirmationCodeSecret(id, encryptedPhoneNumberConfirmationCodeSecret);
     }
 
     @Override
     @Transactional
-    public void updateAuthenticatorAppFactorAuthEnabled(Long id, boolean enabled) {
+    public String enableAuthenticatorAppFactorAuth(Long id) {
         ensureUserExists(id);
-        customerUserRepository.updateAuthenticatorAppFactorAuthEnabled(id, enabled);
+
+        String authenticatorAppConfirmationCodeSecret = otpService.generateSecret();
+        String encryptedAuthenticatorAppConfirmationCodeSecret = cryptoUtils.encrypt(authenticatorAppConfirmationCodeSecret);
+
+        customerUserRepository.updateAuthenticatorAppFactorAuthEnabled(id, true);
+        customerUserRepository.updateEncryptedAuthenticatorAppConfirmationCodeSecret(id, encryptedAuthenticatorAppConfirmationCodeSecret);
+
+        return authenticatorAppConfirmationCodeSecret;
+    }
+
+    @Override
+    @Transactional
+    public void disableEmailFactorAuth(Long id) {
+        ensureUserExists(id);
+        customerUserRepository.updateEmailFactorAuthEnabled(id, false);
+        customerUserRepository.updateEncryptedEmailConfirmationCodeSecret(id, null);
+    }
+
+    @Override
+    @Transactional
+    public void disablePhoneNumberFactorAuth(Long id) {
+        ensureUserExists(id);
+        customerUserRepository.updatePhoneNumberFactorAuthEnabled(id, false);
+        customerUserRepository.updateEncryptedPhoneNumberConfirmationCodeSecret(id, null);
+    }
+
+    @Override
+    @Transactional
+    public void disableAuthenticatorAppFactorAuth(Long id) {
+        ensureUserExists(id);
+        customerUserRepository.updateAuthenticatorAppFactorAuthEnabled(id, false);
+        customerUserRepository.updateEncryptedAuthenticatorAppConfirmationCodeSecret(id, null);
     }
 
     @Override

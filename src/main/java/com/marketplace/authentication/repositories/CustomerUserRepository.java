@@ -64,6 +64,18 @@ public interface CustomerUserRepository extends JpaRepository<CustomerUser, Long
     void updateAuthenticatorAppFactorAuthEnabled(@Param("id") Long id, @Param("enabled") boolean enabled);
 
     @Modifying
+    @Query(value = "UPDATE customer_users u SET encrypted_email_confirmation_code_secret= :encrypted_secret WHERE u.id= :id", nativeQuery = true)
+    void updateEncryptedEmailConfirmationCodeSecret(@Param("id") Long id, @Param("encrypted_secret") String encryptedSecret);
+
+    @Modifying
+    @Query(value = "UPDATE customer_users u SET encrypted_phone_number_confirmation_code_secret= :encrypted_secret WHERE u.id= :id", nativeQuery = true)
+    void updateEncryptedPhoneNumberConfirmationCodeSecret(@Param("id") Long id, @Param("encrypted_secret") String encryptedSecret);
+
+    @Modifying
+    @Query(value = "UPDATE customer_users u SET encrypted_authenticator_app_confirmation_code_secret= :encrypted_secret WHERE u.id= :id", nativeQuery = true)
+    void updateEncryptedAuthenticatorAppConfirmationCodeSecret(@Param("id") Long id, @Param("encrypted_secret") String encryptedSecret);
+    
+    @Modifying
     @Query(value = "UPDATE customer_users u SET last_login_date = :last_login_date WHERE u.id = :id", nativeQuery = true)
     void updateLastLoginDate(@Param("id") Long id, @Param("last_login_date") LocalDateTime lastLoginDate);
 

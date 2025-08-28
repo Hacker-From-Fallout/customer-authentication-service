@@ -88,26 +88,35 @@ public class CustomerUser implements UserDetails {
     @Column(name = "authorities", nullable = false)
     private Set<CustomerUserAuthority> authorities;
 
-    @Column(name="account_non_expired")
+    @Column(name = "account_non_expired")
     private boolean accountNonExpired;
 
-    @Column(name="account_non_locked")
+    @Column(name = "account_non_locked")
     private boolean accountNonLocked;
 
-    @Column(name="credentials_non_expired")
+    @Column(name = "credentials_non_expired")
     private boolean credentialsNonExpired;
 
-    @Column(name="enabled")
+    @Column(name = "enabled")
     private boolean enabled;
 
-    @Column(name="email_factor_auth_enabled")
+    @Column(name = "email_factor_auth_enabled")
     private boolean emailFactorAuthEnabled;
 
-    @Column(name="phone_number_factor_auth_enabled")
+    @Column(name = "phone_number_factor_auth_enabled")
     private boolean phoneNumberFactorAuthEnabled;
 
-    @Column(name="authenticator_app_factor_auth_enabled")
+    @Column(name = "authenticator_app_factor_auth_enabled")
     private boolean authenticatorAppFactorAuthEnabled;
+
+    @Column(name = "encrypted_email_confirmation_code_secret")
+    private String encryptedEmailConfirmationCodeSecret;
+
+    @Column(name = "encrypted_phone_number_confirmation_code_secret")
+    private String encryptedPhoneNumberConfirmationCodeSecret;
+
+    @Column(name = "encrypted_authenticator_app_confirmation_code_secret")
+    private String encryptedAuthenticatorAppConfirmationCodeSecret;
 
     @Column(name = "registration_date", nullable = false)
     private final LocalDateTime registrationDate = LocalDateTime.now();

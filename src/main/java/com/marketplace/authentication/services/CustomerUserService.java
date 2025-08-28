@@ -32,9 +32,12 @@ public interface CustomerUserService {
     void updateAccountNonLocked(Long id, boolean accountNonLocked);
     void updateCredentialsNonExpired(Long id, boolean credentialsNonExpired);
     void updateEnabled(Long id, boolean enabled);
-    void updateEmailFactorAuthEnabled(Long id, boolean enabled);
-    void updatePhoneNumberFactorAuthEnabled(Long id, boolean enabled);
-    void updateAuthenticatorAppFactorAuthEnabled(Long id, boolean enabled);
+    void enableEmailFactorAuth(Long id);
+    void enablePhoneNumberFactorAuth(Long id);
+    String enableAuthenticatorAppFactorAuth(Long id);
+    void disableEmailFactorAuth(Long id);
+    void disablePhoneNumberFactorAuth(Long id);
+    void disableAuthenticatorAppFactorAuth(Long id);
     void updateLastLoginDate(Long id, LocalDateTime lastLoginDate);
 
     void addRole(Long userId, CustomerUserRole role);

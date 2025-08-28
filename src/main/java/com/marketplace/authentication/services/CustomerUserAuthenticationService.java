@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Function;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,47 +25,61 @@ import com.marketplace.authentication.exception.exceptions.VerificationRegistrat
 import com.marketplace.authentication.producers.ConfirmationProducer;
 import com.marketplace.authentication.producers.CustomerUserProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
-import com.marketplace.authentication.security.AccessTokenJwsStringSerializer;
 import com.marketplace.authentication.security.CryptoUtils;
 import com.marketplace.authentication.security.CustomerUserRegistrationSessionService;
 import com.marketplace.authentication.security.DefaultAccessTokenFactory;
 import com.marketplace.authentication.security.DefaultRefreshTokenFactory;
 import com.marketplace.authentication.security.OtpService;
-import com.marketplace.authentication.security.RefreshTokenJweStringSerializer;
 import com.marketplace.authentication.security.Token;
 import com.marketplace.authentication.security.Tokens;
-import com.nimbusds.jose.crypto.DirectEncrypter;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CustomerUserAuthenticationService {
 
     private final CustomerUserService customerUserService;
     private final CustomerUserRegistrationSessionService customerUserRegistrationSessionService;
     private final OtpService otpService;
+    private final CryptoUtils cryptoUtils;
     private final ConfirmationProducer confirmationProducer;
     private final CustomerUserRepository customerUserRepository;
     private final CustomerUserProducer customerUserProducer;
     private final PasswordEncoder passwordEncoder;
-    private final String secretKeyAES = "GlzwKQ0ydYW5P76BWnb0cf5sNj7AILAhMctn5Ae8SNQ=";
+    private final Function<Authentication, Token> refreshTokenFactory;
+    private final Function<Token, Token> accessTokenFactory;
+    private final Function<Token, String> refreshTokenStringSerializer;
+    private final Function<Token, String> accessTokenStringSerializer;
 
-    @Value("${jwt.access-token-key}") 
-    String accessTokenKey;
+    @Value("${crypto.secret-key-aes}")
+    private String secretKeyAES;
 
-    @Value("${jwt.refresh-token-key}") 
-    String refreshTokenKey;
-
-    private Function<Authentication, Token> refreshTokenFactory = new DefaultRefreshTokenFactory();
-    private Function<Token, Token> accessTokenFactory = new DefaultAccessTokenFactory();
-
-    private Function<Token, String> refreshTokenStringSerializer;
-    private Function<Token, String> accessTokenStringSerializer;
+    public CustomerUserAuthenticationService(
+        CustomerUserService customerUserService,
+        CustomerUserRegistrationSessionService customerUserRegistrationSessionService,
+        OtpService otpService,
+        CryptoUtils cryptoUtils,
+        ConfirmationProducer confirmationProducer,
+        CustomerUserRepository customerUserRepository,
+        CustomerUserProducer customerUserProducer,
+        PasswordEncoder passwordEncoder,
+        @Qualifier("refreshTokenStringSerializer") Function<Token, String> refreshTokenStringSerializer,
+        @Qualifier("accessTokenStringSerializer") Function<Token, String> accessTokenStringSerializer
+    ) {
+        this.customerUserService = customerUserService;
+        this.customerUserRegistrationSessionService = customerUserRegistrationSessionService;
+        this.otpService = otpService;
+        this.cryptoUtils = cryptoUtils;
+        this.confirmationProducer = confirmationProducer;
+        this.customerUserRepository = customerUserRepository;
+        this.customerUserProducer = customerUserProducer;
+        this.passwordEncoder = passwordEncoder;
+        this.refreshTokenFactory = new DefaultRefreshTokenFactory();
+        this.accessTokenFactory = new DefaultAccessTokenFactory();
+        this.refreshTokenStringSerializer = refreshTokenStringSerializer;
+        this.accessTokenStringSerializer = accessTokenStringSerializer;
+    }
 
     @Transactional
     public UUID initiateRegistration(CustomerUserCreateDto dto) {
@@ -73,22 +88,16 @@ public class CustomerUserAuthenticationService {
         UUID sessionId = UUID.randomUUID();
         String emailConfirmationCodeSecret = otpService.generateSecret();
         String phoneNumberConfirmationCodeSecret = otpService.generateSecret();
-        EmailConfirmationCodeDto emailConfirmationCodeDto = new EmailConfirmationCodeDto(dto.email(), otpService.generateCurrentCode(emailConfirmationCodeSecret));
-        PhoneNumberConfirmationCodeDto phoneNumberConfirmationCodeDto = new PhoneNumberConfirmationCodeDto(dto.phoneNumber(), otpService.generateCurrentCode(phoneNumberConfirmationCodeSecret));
-        String encryptedEmailConfirmationCodeSecret;
-        String encryptedPhoneNumberConfirmationCodeSecret;
-
-        try {
-            encryptedEmailConfirmationCodeSecret = CryptoUtils.encrypt(emailConfirmationCodeSecret, secretKeyAES);
-            encryptedPhoneNumberConfirmationCodeSecret = CryptoUtils.encrypt(phoneNumberConfirmationCodeSecret, secretKeyAES);
-        } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            throw new RuntimeException("Ошибка шифрования секретов", exception);
-        }
+        EmailConfirmationCodeDto emailConfirmationCodeDto = 
+            new EmailConfirmationCodeDto(dto.email(), 
+                otpService.generateCurrentCode(emailConfirmationCodeSecret));
+        PhoneNumberConfirmationCodeDto phoneNumberConfirmationCodeDto = 
+            new PhoneNumberConfirmationCodeDto(dto.phoneNumber(),
+                otpService.generateCurrentCode(phoneNumberConfirmationCodeSecret));
+        String encryptedEmailConfirmationCodeSecret = cryptoUtils.encrypt(emailConfirmationCodeSecret);
+        String encryptedPhoneNumberConfirmationCodeSecret = cryptoUtils.encrypt(phoneNumberConfirmationCodeSecret);
 
         CustomerUserRegistrationSession session = CustomerUserRegistrationSession.builder()
-            .encryptedEmailConfirmationCodeSecret(encryptedEmailConfirmationCodeSecret)
-            .encryptedPhoneNumberConfirmationCodeSecret(encryptedPhoneNumberConfirmationCodeSecret)
             .firstName(dto.firstName())
             .lastName(dto.lastName())
             .username(dto.username())
@@ -104,6 +113,8 @@ public class CustomerUserAuthenticationService {
             .emailFactorAuthEnabled(dto.emailFactorAuthEnabled())
             .phoneNumberFactorAuthEnabled(dto.phoneNumberFactorAuthEnabled())
             .authenticatorAppFactorAuthEnabled(dto.authenticatorAppFactorAuthEnabled())
+            .encryptedEmailConfirmationCodeSecret(encryptedEmailConfirmationCodeSecret)
+            .encryptedPhoneNumberConfirmationCodeSecret(encryptedPhoneNumberConfirmationCodeSecret)
             .build();
 
         customerUserRegistrationSessionService.saveSession(sessionId.toString(), session, Duration.ofMinutes(5));
@@ -131,19 +142,13 @@ public class CustomerUserAuthenticationService {
 
         String encryptedEmailConfirmationCodeSecret = session.getEncryptedEmailConfirmationCodeSecret();
         String encryptedPhoneNumberConfirmationCodeSecret = session.getEncryptedPhoneNumberConfirmationCodeSecret();
-        String emailConfirmationCodeSecret;
-        String phoneNumberConfirmationCodeSecret;
+        String emailConfirmationCodeSecret = cryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret);
+        String phoneNumberConfirmationCodeSecret = cryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret);
 
-        try {
-            emailConfirmationCodeSecret = CryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret, secretKeyAES);
-            phoneNumberConfirmationCodeSecret = CryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret, secretKeyAES);
-        } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            throw new RuntimeException("Ошибка дешифрования секретов", exception);
-        }
-
-        boolean emailConfirmationCodeValid = otpService.verifyCode(dto.emailConfirmationCode(), emailConfirmationCodeSecret);
-        boolean phoneNumberConfirmationCodeValid = otpService.verifyCode(dto.phoneNumberConfirmationCode(), phoneNumberConfirmationCodeSecret);
+        boolean emailConfirmationCodeValid = 
+            otpService.verifyCode(dto.emailConfirmationCode(), emailConfirmationCodeSecret);
+        boolean phoneNumberConfirmationCodeValid = 
+            otpService.verifyCode(dto.phoneNumberConfirmationCode(), phoneNumberConfirmationCodeSecret);
 
         if (!(emailConfirmationCodeValid && phoneNumberConfirmationCodeValid)) {
             session.decrementCodeEntryAttempts();
@@ -188,13 +193,6 @@ public class CustomerUserAuthenticationService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        try {
-            refreshTokenStringSerializer = new RefreshTokenJweStringSerializer(new DirectEncrypter(OctetSequenceKey.parse(refreshTokenKey)));
-            accessTokenStringSerializer = new AccessTokenJwsStringSerializer(new MACSigner(OctetSequenceKey.parse(accessTokenKey)));
-        } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-        }
-
         Token refreshToken = refreshTokenFactory.apply(authentication);
         Token accessToken = accessTokenFactory.apply(refreshToken);
         Tokens tokens = new Tokens(
@@ -220,19 +218,13 @@ public class CustomerUserAuthenticationService {
 
         String encryptedEmailConfirmationCodeSecret = session.getEncryptedEmailConfirmationCodeSecret();
         String encryptedPhoneNumberConfirmationCodeSecret = session.getEncryptedPhoneNumberConfirmationCodeSecret();
-        String emailConfirmationCodeSecret;
-        String phoneNumberConfirmationCodeSecret;
+        String emailConfirmationCodeSecret = cryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret);
+        String phoneNumberConfirmationCodeSecret = cryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret);
 
-        try {
-            emailConfirmationCodeSecret = CryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret, secretKeyAES);
-            phoneNumberConfirmationCodeSecret = CryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret, secretKeyAES);
-        } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            throw new RuntimeException("Ошибка дешифрования секретов", exception);
-        }
-
-        EmailConfirmationCodeDto emailConfirmationCodeDto = new EmailConfirmationCodeDto(session.getEmail(), otpService.generateCurrentCode(emailConfirmationCodeSecret));
-        PhoneNumberConfirmationCodeDto phoneNumberConfirmationCodeDto = new PhoneNumberConfirmationCodeDto(session.getPhoneNumber(), otpService.generateCurrentCode(phoneNumberConfirmationCodeSecret));
+        EmailConfirmationCodeDto emailConfirmationCodeDto = 
+            new EmailConfirmationCodeDto(session.getEmail(), otpService.generateCurrentCode(emailConfirmationCodeSecret));
+        PhoneNumberConfirmationCodeDto phoneNumberConfirmationCodeDto = 
+            new PhoneNumberConfirmationCodeDto(session.getPhoneNumber(), otpService.generateCurrentCode(phoneNumberConfirmationCodeSecret));
         confirmationProducer.emailConfirmation(emailConfirmationCodeDto);
         confirmationProducer.phoneNumberConfirmation(phoneNumberConfirmationCodeDto);
 

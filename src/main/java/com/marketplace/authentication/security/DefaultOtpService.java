@@ -2,12 +2,12 @@ package com.marketplace.authentication.security;
 
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.codec.binary.Base32;
 import org.springframework.stereotype.Component;
 
 import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
@@ -26,40 +26,41 @@ public class DefaultOtpService implements OtpService {
         try {
             KeyGenerator keyGenerator = KeyGenerator.getInstance(totpGenerator.getAlgorithm());
             keyGenerator.init(160);
-
             SecretKey secretKey = keyGenerator.generateKey();
+            byte[] encoded = secretKey.getEncoded();
+            Base32 base32 = new Base32();
+            String base32Secret = base32.encodeAsString(encoded);
 
-            return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+            return base32Secret;
         } catch (NoSuchAlgorithmException exception) {
-            log.error(exception.getMessage(), exception);
-            return null;
+            throw new RuntimeException("Ошибка генерации секрета", exception);
         }
     }
 
-    public String generateCurrentCode(String base64Secret) {
+    public String generateCurrentCode(String base32Secret) {
         try {
-            byte[] decodeSecretKey = Base64.getDecoder().decode(base64Secret);
-            SecretKey secretKey = new SecretKeySpec(decodeSecretKey, totpGenerator.getAlgorithm());
-
+            Base32 base32 = new Base32();
+            byte[] decodedBytes = base32.decode(base32Secret);
+            SecretKey secretKey = new SecretKeySpec(decodedBytes, totpGenerator.getAlgorithm());
             int otp = totpGenerator.generateOneTimePassword(secretKey, Instant.now());
 
             return String.format("%06d", otp);
         } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            return null;
+            throw new RuntimeException("Ошибка генерации кода подтверждения", exception);
         }
-    } 
+    }
 
-    public boolean verifyCode(String code, String base64Secret) {
+    public boolean verifyCode(String code, String base32Secret) {
         try {
-            byte[] decodeSecretKey = Base64.getDecoder().decode(base64Secret);
-            SecretKey secretKey = new javax.crypto.spec.SecretKeySpec(decodeSecretKey, totpGenerator.getAlgorithm());
+            Base32 base32 = new Base32();
+            byte[] decodedBytes = base32.decode(base32Secret);
+            SecretKey secretKey = new SecretKeySpec(decodedBytes, totpGenerator.getAlgorithm());
             int otp = Integer.parseInt(code);
-            System.out.println(totpGenerator.generateOneTimePassword(secretKey, Instant.now()) + "??????????????");
-            return totpGenerator.generateOneTimePassword(secretKey, Instant.now()) == otp;
+            int generatedOtp = totpGenerator.generateOneTimePassword(secretKey, Instant.now());
+        
+            return generatedOtp == otp;
         } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            return false;
+            throw new RuntimeException("Ошибка верификации кода подтверждения", exception);
         }
     }
 }

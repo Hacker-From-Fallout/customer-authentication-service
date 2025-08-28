@@ -78,6 +78,15 @@ databaseChangeLog:
                         name: authenticator_app_factor_auth_enabled
                         type: BOOLEAN
                     - column:
+                        name: encrypted_email_confirmation_code_secret
+                        type: VARCHAR(255)
+                    - column:
+                        name: encrypted_phone_number_confirmation_code_secret
+                        type: VARCHAR(255)
+                    - column:
+                        name: encrypted_authenticator_app_confirmation_code_secret
+                        type: VARCHAR(255)
+                    - column:
                         name: registration_date
                         type: TIMESTAMP
                         constraints:

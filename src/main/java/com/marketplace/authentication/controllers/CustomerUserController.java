@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.marketplace.authentication.domain.dto.request.AccountNonExpiredDto;
 import com.marketplace.authentication.domain.dto.request.AccountNonLockedDto;
-import com.marketplace.authentication.domain.dto.request.AuthenticatorAppFactorAuthEnabledDto;
 import com.marketplace.authentication.domain.dto.request.CredentialsNonExpiredDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserAuthoritiesDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserAuthorityDto;
@@ -26,13 +25,12 @@ import com.marketplace.authentication.domain.dto.request.CustomerUserRoleDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserRolesDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserUpdateDto;
 import com.marketplace.authentication.domain.dto.request.EmailDto;
-import com.marketplace.authentication.domain.dto.request.EmailFactorAuthEnabledDto;
 import com.marketplace.authentication.domain.dto.request.EnabledDto;
 import com.marketplace.authentication.domain.dto.request.LastLoginDateDto;
 import com.marketplace.authentication.domain.dto.request.PasswordDto;
 import com.marketplace.authentication.domain.dto.request.PhoneNumberDto;
-import com.marketplace.authentication.domain.dto.request.PhoneNumberFactorAuthEnabledDto;
 import com.marketplace.authentication.domain.dto.request.UsernameDto;
+import com.marketplace.authentication.domain.dto.response.AuthenticatorAppConfirmationCodeSecret;
 import com.marketplace.authentication.domain.dto.response.CustomerUserResponseDto;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 import com.marketplace.authentication.services.CustomerUserService;
@@ -188,21 +186,43 @@ public class CustomerUserController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/email-factor-auth-enabled")
-    public ResponseEntity<?> updatEmailFactorAuthEnabled(@PathVariable Long id, @Valid @RequestBody EmailFactorAuthEnabledDto dto) {
-        customerUserService.updateEmailFactorAuthEnabled(id, dto.enabled().booleanValue());
+    @PostMapping("/{id}/email-factor-auth-enable")
+    public ResponseEntity<?> enableEmailFactorAuth(@PathVariable Long id) {
+        customerUserService.enableEmailFactorAuth(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/phone-number-factor-auth-enabled")
-    public ResponseEntity<?> updatePhoneNumberFactorAuthEnabled(@PathVariable Long id, @Valid @RequestBody PhoneNumberFactorAuthEnabledDto dto) {
-        customerUserService.updatePhoneNumberFactorAuthEnabled(id, dto.enabled().booleanValue());
+    @PostMapping("/{id}/email-factor-auth-disable")
+    public ResponseEntity<?> disableEmailFactorAuth(@PathVariable Long id) {
+        customerUserService.disableEmailFactorAuth(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/authenticator-app-factor-auth-enabled")
-    public ResponseEntity<?> updateAuthenticatorAppFactorAuthEnabledDto(@PathVariable Long id, @Valid @RequestBody AuthenticatorAppFactorAuthEnabledDto dto) {
-        customerUserService.updateAuthenticatorAppFactorAuthEnabled(id, dto.enabled().booleanValue());
+
+    @PostMapping("/{id}/phone-number-factor-auth-enable")
+    public ResponseEntity<?> enablePhoneNumberFactorAuth(@PathVariable Long id) {
+        customerUserService.enablePhoneNumberFactorAuth(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/phone-number-factor-auth-disable")
+    public ResponseEntity<?> disablePhoneNumberFactorAuth(@PathVariable Long id) {
+        customerUserService.disablePhoneNumberFactorAuth(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/authenticator-app-factor-auth-enable")
+    public ResponseEntity<?> enableAuthenticatorAppFactorAuth(@PathVariable Long id) {
+        String authenticatorAppConfirmationCodeSecret = 
+            customerUserService.enableAuthenticatorAppFactorAuth(id);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+            new AuthenticatorAppConfirmationCodeSecret(authenticatorAppConfirmationCodeSecret));
+    }
+
+    @PostMapping("/{id}/authenticator-app-factor-auth-disable")
+    public ResponseEntity<?> disableAuthenticatorAppFactorAuth(@PathVariable Long id) {
+        customerUserService.disableAuthenticatorAppFactorAuth(id);
         return ResponseEntity.noContent().build();
     }
 

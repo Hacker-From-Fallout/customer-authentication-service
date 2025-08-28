@@ -7,34 +7,53 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
 public class CryptoUtils {
 
-    public static String generateAESKey() throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        keyGen.init(256);
-        SecretKey secretKey = keyGen.generateKey();
-        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+    @Value("${crypto.secret-key-aes}")
+    private String base64SecretKeyAES;
+
+    public String generateAESKey() {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            keyGen.init(256);
+            SecretKey secretKey = keyGen.generateKey();
+            return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+        } catch (Exception exception) {
+            throw new RuntimeException("Ошибка генерации AES ключа", exception);
+        }
     }
 
-    public static String encrypt(String data, String base64SecretKey) throws Exception {
-        SecretKey secretKey = getSecretKeyFromBase64(base64SecretKey);
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        byte[] encryptedBytes = cipher.doFinal(data.getBytes("UTF-8"));
-        return Base64.getEncoder().encodeToString(encryptedBytes);
+    public String encrypt(String data) {
+        try {
+            SecretKey secretKey = getSecretKeyFromBase64(base64SecretKeyAES);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] encryptedBytes = cipher.doFinal(data.getBytes("UTF-8"));
+            return Base64.getEncoder().encodeToString(encryptedBytes);
+        } catch (Exception exception) {
+            throw new RuntimeException("Ошибка шифрования данных", exception);
+        }
     }
 
-    public static String decrypt(String encryptedData, String base64SecretKey) throws Exception {
-        SecretKey secretKey = getSecretKeyFromBase64(base64SecretKey);
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
-        byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-        return new String(decryptedBytes, "UTF-8");
+    public String decrypt(String encryptedData) {
+        try {
+            SecretKey secretKey = getSecretKeyFromBase64(base64SecretKeyAES);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
+            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
+            return new String(decryptedBytes, "UTF-8");
+        } catch (Exception exception) {
+            throw new RuntimeException("Ошибка расшифровки данных", exception);
+        }
     }
 
-    private static SecretKey getSecretKeyFromBase64(String base64SecretKey) {
-        byte[] decodedBytes = Base64.getDecoder().decode(base64SecretKey);
+    private SecretKey getSecretKeyFromBase64(String base64SecretKeyAES) {
+        byte[] decodedBytes = Base64.getDecoder().decode(base64SecretKeyAES);
         return new SecretKeySpec(decodedBytes, "AES");
     }
 }

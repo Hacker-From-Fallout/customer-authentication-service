@@ -38,6 +38,8 @@ spring:
                 delete-profile: delete-customer-profile-topic
             email-confirmation: email-confirmation-topic
             phone-number-confirmation: phone-number-confirmation-topic
+crypto:
+    secret-key-aes: "GlzwKQ0ydYW5P76BWnb0cf5sNj7AILAhMctn5Ae8SNQ="
 jwt:
     access-token-key: '{"kty":"oct","k":"hi7S5RX5ZRZooHA0RKGctZ-KtR9FoESgCnH-3BNg5XI"}'
     refresh-token-key: '{"kty":"oct","k":"956PBFst1FguLr5irJD-aQ"}'
