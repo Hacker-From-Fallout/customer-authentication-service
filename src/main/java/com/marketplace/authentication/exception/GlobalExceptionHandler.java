@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,6 +21,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import com.marketplace.authentication.exception.exceptions.AlreadyExistsException;
+import com.marketplace.authentication.exception.exceptions.AuthenticationSessionNotFound;
+import com.marketplace.authentication.exception.exceptions.InvalidConfirmationCodeException;
 import com.marketplace.authentication.exception.exceptions.RegistrationSessionNotFound;
 import com.marketplace.authentication.exception.exceptions.TooManyAttemptsException;
 import com.marketplace.authentication.exception.exceptions.UserNotFoundException;
@@ -59,6 +62,39 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                this.messageSource.getMessage(exception.getMessage(), new Object[0],
+                    exception.getMessage(), locale)));
+    }
+
+    @ExceptionHandler(AuthenticationSessionNotFound.class)
+    public ResponseEntity<ProblemDetail> handleAuthenticationSessionNotFound(AuthenticationSessionNotFound exception,
+        Locale locale) {
+        log.info("AuthenticationSessionNotFound: {}", exception.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                this.messageSource.getMessage(exception.getMessage(), new Object[0],
+                    exception.getMessage(), locale)));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleBadCredentialsException(BadCredentialsException exception,
+        Locale locale) {
+        log.info("BadCredentialsException: {}", exception.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
+                this.messageSource.getMessage(exception.getMessage(), new Object[0],
+                    exception.getMessage(), locale)));
+    }
+
+    @ExceptionHandler(InvalidConfirmationCodeException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidConfirmationCodeException(InvalidConfirmationCodeException exception,
+        Locale locale) {
+        log.info("InvalidConfirmationCodeException: {}", exception.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
                 this.messageSource.getMessage(exception.getMessage(), new Object[0],
                     exception.getMessage(), locale)));
     }

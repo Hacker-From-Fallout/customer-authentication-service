@@ -23,7 +23,7 @@ public class CryptoUtils {
             SecretKey secretKey = keyGen.generateKey();
             return Base64.getEncoder().encodeToString(secretKey.getEncoded());
         } catch (Exception exception) {
-            throw new RuntimeException("Ошибка генерации AES ключа", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 
@@ -35,7 +35,7 @@ public class CryptoUtils {
             byte[] encryptedBytes = cipher.doFinal(data.getBytes("UTF-8"));
             return Base64.getEncoder().encodeToString(encryptedBytes);
         } catch (Exception exception) {
-            throw new RuntimeException("Ошибка шифрования данных", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 
@@ -48,7 +48,7 @@ public class CryptoUtils {
             byte[] decryptedBytes = cipher.doFinal(decodedBytes);
             return new String(decryptedBytes, "UTF-8");
         } catch (Exception exception) {
-            throw new RuntimeException("Ошибка расшифровки данных", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 

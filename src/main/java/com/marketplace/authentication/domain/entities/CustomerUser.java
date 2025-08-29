@@ -11,6 +11,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.marketplace.authentication.domain.authorities.CustomerUserAuthority;
 import com.marketplace.authentication.domain.authorities.CustomerUserRole;
 
@@ -130,6 +131,11 @@ public class CustomerUser implements UserDetails {
         return authorities;
     }
 
+    @JsonProperty("authorities")
+    public Set<CustomerUserAuthority> getAuthoritiesAsStrings() {
+        return authorities;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<SimpleGrantedAuthority> authorities = this.authorities.stream()
@@ -146,6 +152,7 @@ public class CustomerUser implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public String getPassword() {
         return hashPassword;
     }

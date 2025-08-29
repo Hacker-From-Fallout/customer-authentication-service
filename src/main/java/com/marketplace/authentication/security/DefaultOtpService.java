@@ -33,7 +33,7 @@ public class DefaultOtpService implements OtpService {
 
             return base32Secret;
         } catch (NoSuchAlgorithmException exception) {
-            throw new RuntimeException("Ошибка генерации секрета", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 
@@ -46,7 +46,7 @@ public class DefaultOtpService implements OtpService {
 
             return String.format("%06d", otp);
         } catch (Exception exception) {
-            throw new RuntimeException("Ошибка генерации кода подтверждения", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 
@@ -57,10 +57,12 @@ public class DefaultOtpService implements OtpService {
             SecretKey secretKey = new SecretKeySpec(decodedBytes, totpGenerator.getAlgorithm());
             int otp = Integer.parseInt(code);
             int generatedOtp = totpGenerator.generateOneTimePassword(secretKey, Instant.now());
+
+            System.out.println(generatedOtp);
         
             return generatedOtp == otp;
         } catch (Exception exception) {
-            throw new RuntimeException("Ошибка верификации кода подтверждения", exception);
+            throw new RuntimeException(exception.getMessage(), exception);
         }
     }
 }

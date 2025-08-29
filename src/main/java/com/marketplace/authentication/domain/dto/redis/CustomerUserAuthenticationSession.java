@@ -1,45 +1,46 @@
 package com.marketplace.authentication.domain.dto.redis;
 
 import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import com.marketplace.authentication.domain.authorities.CustomerUserAuthority;
-import com.marketplace.authentication.domain.authorities.CustomerUserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.marketplace.authentication.domain.entities.CustomerUser;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class CustomerUserAuthenticationSession implements UserDetails {
-    private String username;
-    private String hashPassword;
-    private EnumSet<CustomerUserRole> roles;
-    private EnumSet<CustomerUserAuthority> authorities;
-    private boolean emailFactorAuthEnabled;
-    private boolean phoneNumberFactorAuthEnabled;
-    private boolean authenticatorAppFactorAuthEnabled;
-    private String encryptedEmailConfirmationCodeSecret;
-    private String encryptedPhoneNumberConfirmationCodeSecret;
-    private String encryptedAuthenticatorAppConfirmationCodeSecret;
-
-    @Builder.Default
+@AllArgsConstructor
+public class CustomerUserAuthenticationSession implements Authentication  {
+    private CustomerUser principal;
+    private boolean authenticated = false;
+    private boolean emailFactorAuthPassed;
+    private boolean phoneNumberFactorAuthPassed;
+    private boolean authenticatorAppFactorAuthPassed;
+    private String emailConfirmationCode;
+    private String phoneNumberConfirmationCode;
+    private String authenticatorAppConfirmationCode;
     private byte codeEntryAttemptsRemaining  = 5;
-
-    @Builder.Default
     private byte resendAttemptsRemaining = 5;
+
+    public CustomerUserAuthenticationSession(CustomerUser customerUser) {
+        this.principal = customerUser;
+
+        this.emailFactorAuthPassed = 
+            customerUser.isEmailFactorAuthEnabled() ? false : true;
+
+        this.phoneNumberFactorAuthPassed = 
+            customerUser.isPhoneNumberFactorAuthEnabled() ? false : true;
+
+        this.authenticatorAppFactorAuthPassed =
+            customerUser.isAuthenticatorAppFactorAuthEnabled() ? false : true;
+    }
 
     public void decrementCodeEntryAttempts() {
             codeEntryAttemptsRemaining--;
@@ -50,27 +51,71 @@ public class CustomerUserAuthenticationSession implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        List<SimpleGrantedAuthority> authorities = this.authorities.stream()
-                    .map(CustomerUserAuthority::name)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
+        return principal.getAuthorities();
+    }
 
-        authorities.addAll(this.roles.stream()
-                    .map(CustomerUserRole::name)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList()));
+    @Override
+    @JsonIgnore
+    public String getName() {
+        return principal.getUsername();
+    }
+
+    @Override
+    @JsonIgnore
+    public Object getCredentials() {
+        return principal.getHashPassword();
+    }
+
+    @Override
+    @JsonIgnore
+    public Object getDetails() {
+        return null;
+    }
+
+    @Override
+    public CustomerUser getPrincipal() {
+        return principal;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
+
+    public void setEmailFactorAuthPassed(boolean isPassed) {
+        if (this.principal.isEmailFactorAuthEnabled()) {
+            this.emailFactorAuthPassed = isPassed;
+        }
+    }
     
-        return authorities;
+    public void setPhoneNumberFactorAuthPassed(boolean isPassed) {
+        if (this.principal.isEmailFactorAuthEnabled()) {
+            this.phoneNumberFactorAuthPassed = isPassed;
+        }
+    }
+
+    public void setAuthenticatorAppFactorAuthPassed(boolean isPassed) {
+        if (this.principal.isAuthenticatorAppFactorAuthEnabled()) {
+            this.authenticatorAppFactorAuthPassed = isPassed;
+        }
     }
 
     @Override
-    public String getUsername() {
-        return username;
+    public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+        if (
+            this.emailFactorAuthPassed && 
+            this.phoneNumberFactorAuthPassed && 
+            this.authenticatorAppFactorAuthPassed
+        ) {
+            this.authenticated = isAuthenticated;
+        }
     }
 
-    @Override
-    public String getPassword() {
-        return hashPassword;
+    @JsonIgnore
+    public boolean isMultiFactorAuthPassed() {
+        return emailFactorAuthPassed && phoneNumberFactorAuthPassed && authenticatorAppFactorAuthPassed;
     }
 }

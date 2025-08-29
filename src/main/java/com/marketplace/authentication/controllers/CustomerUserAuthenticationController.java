@@ -3,8 +3,11 @@ package com.marketplace.authentication.controllers;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.marketplace.authentication.domain.dto.request.ConfirmationCodeDto;
 import com.marketplace.authentication.domain.dto.request.ConfirmationRegistrarionCodesDto;
+import com.marketplace.authentication.domain.dto.request.CustomerUserAuthenticationDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserCreateDto;
+import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 import com.marketplace.authentication.domain.dto.response.RegistrationSessionId;
 import com.marketplace.authentication.security.Tokens;
 import com.marketplace.authentication.services.CustomerUserAuthenticationService;
@@ -65,6 +68,58 @@ public class CustomerUserAuthenticationController {
     @PostMapping("/resend-confirmation-registration/{sessionId}")
     public ResponseEntity<?> resendConfirmationRegistrationCodes(@PathVariable String sessionId) {
         customerUserAuthenticationService.resendConfirmationRegistrationCodes(sessionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> usernamePasswordAuthenticate(@Valid @RequestBody CustomerUserAuthenticationDto dto) {
+        AuthenticationResponse authenticationResponse = 
+            customerUserAuthenticationService.usernamePasswordAuthenticate(dto);
+
+        return authenticationResponse.authenticated() 
+            ? ResponseEntity.ok().body(authenticationResponse)
+            : ResponseEntity.status(HttpStatus.ACCEPTED).body(authenticationResponse);
+    }
+
+    @PostMapping("/confirmation-email/{sessionId}")
+    public ResponseEntity<?> emailConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
+        AuthenticationResponse authenticationResponse = 
+            customerUserAuthenticationService.emailConfirmationCodeAuthenticate(sessionId, dto.code());
+        
+        return authenticationResponse.authenticated() 
+            ? ResponseEntity.ok().body(authenticationResponse)
+            : ResponseEntity.status(HttpStatus.ACCEPTED).body(authenticationResponse);
+    }
+
+    @PostMapping("/confirmation-phone-number/{sessionId}")
+    public ResponseEntity<?> phoneNumberConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
+        AuthenticationResponse authenticationResponse = 
+            customerUserAuthenticationService.phoneNumberConfirmationCodeAuthenticate(sessionId, dto.code());
+        
+        return authenticationResponse.authenticated() 
+            ? ResponseEntity.ok().body(authenticationResponse)
+            : ResponseEntity.status(HttpStatus.ACCEPTED).body(authenticationResponse);
+    }
+
+    @PostMapping("/confirmation-authenticator-app/{sessionId}")
+    public ResponseEntity<?> authenticatorAppConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
+        AuthenticationResponse authenticationResponse = 
+            customerUserAuthenticationService.authenticatorAppConfirmationCodeAuthenticate(sessionId, dto.code());
+        
+        return authenticationResponse.authenticated() 
+            ? ResponseEntity.ok().body(authenticationResponse)
+            : ResponseEntity.status(HttpStatus.ACCEPTED).body(authenticationResponse);
+    }
+
+    @PostMapping("/send-email-code/{sessionId}")
+    public ResponseEntity<?> sendEmailConfirmationCodeForAuthSession(@PathVariable String sessionId) {
+        customerUserAuthenticationService.sendEmailConfirmationCodeForAuthSession(sessionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/send-phone-number-code/{sessionId}")
+    public ResponseEntity<?> sendPhoneNumberConfirmationCodeForAuthSession(@PathVariable String sessionId) {
+        customerUserAuthenticationService.sendPhoneNumberConfirmationCodeForAuthSession(sessionId);
         return ResponseEntity.noContent().build();
     }
 }
