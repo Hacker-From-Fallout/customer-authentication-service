@@ -42,7 +42,7 @@ public class CustomerUserRegistrationSession {
     private byte resendAttemptsRemaining = 5;
 
     public void decrementCodeEntryAttempts() {
-            codeEntryAttemptsRemaining--;
+        codeEntryAttemptsRemaining--;
     }
 
     public void decrementResendAttemptsRemaining() {

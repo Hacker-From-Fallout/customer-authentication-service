@@ -57,8 +57,6 @@ public class DefaultOtpService implements OtpService {
             SecretKey secretKey = new SecretKeySpec(decodedBytes, totpGenerator.getAlgorithm());
             int otp = Integer.parseInt(code);
             int generatedOtp = totpGenerator.generateOneTimePassword(secretKey, Instant.now());
-
-            System.out.println(generatedOtp);
         
             return generatedOtp == otp;
         } catch (Exception exception) {

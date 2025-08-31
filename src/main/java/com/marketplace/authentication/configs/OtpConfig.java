@@ -12,6 +12,6 @@ public class OtpConfig {
 
     @Bean
     public TimeBasedOneTimePasswordGenerator totpGenerator() {
-        return new TimeBasedOneTimePasswordGenerator(Duration.ofSeconds(1200), 6);
+        return new TimeBasedOneTimePasswordGenerator(Duration.ofSeconds(30), 6);
     }
 }

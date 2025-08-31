@@ -284,7 +284,7 @@ public class CustomerUserAuthenticationService {
 
         return new AuthenticationResponse(
             sessionId.toString(),
-            false,
+            session.isAuthenticated(),
             session.isEmailFactorAuthPassed(),
             session.isPhoneNumberFactorAuthPassed(),
             session.isAuthenticatorAppFactorAuthPassed(),
@@ -342,7 +342,7 @@ public class CustomerUserAuthenticationService {
 
         return new AuthenticationResponse(
             sessionId.toString(),
-            false,
+            session.isAuthenticated(),
             session.isEmailFactorAuthPassed(),
             session.isPhoneNumberFactorAuthPassed(),
             session.isAuthenticatorAppFactorAuthPassed(),
@@ -400,7 +400,7 @@ public class CustomerUserAuthenticationService {
 
         return new AuthenticationResponse(
             sessionId.toString(),
-            false,
+            session.isAuthenticated(),
             session.isEmailFactorAuthPassed(),
             session.isPhoneNumberFactorAuthPassed(),
             session.isAuthenticatorAppFactorAuthPassed(),
@@ -422,6 +422,8 @@ public class CustomerUserAuthenticationService {
 
         AuthenticatorAppConfirmationCodeAuthenticationSession authenticationSession =
             new AuthenticatorAppConfirmationCodeAuthenticationSession(session);
+
+        System.out.print(authenticationSession.isEmailFactorAuthPassed());
 
         Authentication authentication;
 
@@ -458,7 +460,7 @@ public class CustomerUserAuthenticationService {
 
         return new AuthenticationResponse(
             sessionId.toString(),
-            false,
+            session.isAuthenticated(),
             session.isEmailFactorAuthPassed(),
             session.isPhoneNumberFactorAuthPassed(),
             session.isAuthenticatorAppFactorAuthPassed(),

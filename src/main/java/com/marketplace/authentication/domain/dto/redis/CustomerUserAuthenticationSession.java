@@ -6,6 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 
 import lombok.AllArgsConstructor;
@@ -22,7 +23,7 @@ public class CustomerUserAuthenticationSession implements Authentication  {
     private boolean authenticated = false;
     private boolean emailFactorAuthPassed;
     private boolean phoneNumberFactorAuthPassed;
-    private boolean authenticatorAppFactorAuthPassed;
+    protected boolean authenticatorAppFactorAuthPassed;
     private String emailConfirmationCode;
     private String phoneNumberConfirmationCode;
     private String authenticatorAppConfirmationCode;
@@ -85,22 +86,34 @@ public class CustomerUserAuthenticationSession implements Authentication  {
         return authenticated;
     }
 
-    public void setEmailFactorAuthPassed(boolean isPassed) {
-        if (this.principal.isEmailFactorAuthEnabled()) {
-            this.emailFactorAuthPassed = isPassed;
-        }
-    }
-    
-    public void setPhoneNumberFactorAuthPassed(boolean isPassed) {
-        if (this.principal.isEmailFactorAuthEnabled()) {
-            this.phoneNumberFactorAuthPassed = isPassed;
-        }
+    @JsonProperty("emailFactorAuthPassed")
+    public boolean isEmailFactorAuthPassed() {
+        return this.emailFactorAuthPassed;
     }
 
+    @JsonProperty("phoneNumberFactorAuthPassed")
+    public boolean isPhoneNumberFactorAuthPassed() {
+        return this.phoneNumberFactorAuthPassed;
+    }
+
+    @JsonProperty("authenticatorAppFactorAuthPassed")
+    public boolean isAuthenticatorAppFactorAuthPassed() {
+        return this.authenticatorAppFactorAuthPassed;
+    }
+
+    @JsonIgnore
+    public void setEmailFactorAuthPassed(boolean isPassed) {
+        this.emailFactorAuthPassed = isPassed;
+    }
+    
+    @JsonIgnore
+    public void setPhoneNumberFactorAuthPassed(boolean isPassed) {
+        this.phoneNumberFactorAuthPassed = isPassed;
+    }
+
+    @JsonIgnore
     public void setAuthenticatorAppFactorAuthPassed(boolean isPassed) {
-        if (this.principal.isAuthenticatorAppFactorAuthEnabled()) {
-            this.authenticatorAppFactorAuthPassed = isPassed;
-        }
+        this.authenticatorAppFactorAuthPassed = isPassed;
     }
 
     @Override
