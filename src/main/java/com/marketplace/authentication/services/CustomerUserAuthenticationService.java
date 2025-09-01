@@ -22,6 +22,7 @@ import com.marketplace.authentication.domain.dto.redis.AuthenticatorAppConfirmat
 import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticationSession;
 import com.marketplace.authentication.domain.dto.redis.CustomerUserRegistrationSession;
 import com.marketplace.authentication.domain.dto.redis.EmailConfirmationCodeAuthenticationSession;
+import com.marketplace.authentication.domain.dto.redis.FailedLoginAttemptsSession;
 import com.marketplace.authentication.domain.dto.redis.PhoneNumberConfirmationCodeAuthenticationSession;
 import com.marketplace.authentication.domain.dto.request.CustomerUserAuthenticationDto;
 import com.marketplace.authentication.domain.dto.request.ConfirmationRegistrarionCodesDto;
@@ -39,6 +40,7 @@ import com.marketplace.authentication.security.CustomerUserAuthenticationSession
 import com.marketplace.authentication.security.CustomerUserRegistrationSessionService;
 import com.marketplace.authentication.security.DefaultAccessTokenFactory;
 import com.marketplace.authentication.security.DefaultRefreshTokenFactory;
+import com.marketplace.authentication.security.FailedLoginAttemptsSessionService;
 import com.marketplace.authentication.security.OtpService;
 import com.marketplace.authentication.security.Token;
 import com.marketplace.authentication.security.Tokens;
@@ -50,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CustomerUserAuthenticationService {
 
     private final CustomerUserService customerUserService;
+    private final FailedLoginAttemptsSessionService failedLoginAttemptsSessionService;
     private final CustomerUserRegistrationSessionService customerUserRegistrationSessionService;
     private final CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService;
     private final AuthenticationManager authenticationManager;
@@ -69,6 +72,7 @@ public class CustomerUserAuthenticationService {
 
     public CustomerUserAuthenticationService(
         CustomerUserService customerUserService,
+        FailedLoginAttemptsSessionService failedLoginAttemptsSessionService,
         CustomerUserRegistrationSessionService customerUserRegistrationSessionService,
         CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService,
         AuthenticationManager authenticationManager,
@@ -82,6 +86,7 @@ public class CustomerUserAuthenticationService {
         @Qualifier("accessTokenStringSerializer") Function<Token, String> accessTokenStringSerializer
     ) {
         this.customerUserService = customerUserService;
+        this.failedLoginAttemptsSessionService = failedLoginAttemptsSessionService;
         this.customerUserRegistrationSessionService = customerUserRegistrationSessionService;
         this.customerUserAuthenticationSessionService = customerUserAuthenticationSessionService;
         this.authenticationManager = authenticationManager;
@@ -254,11 +259,41 @@ public class CustomerUserAuthenticationService {
     @Transactional
     public AuthenticationResponse usernamePasswordAuthenticate(CustomerUserAuthenticationDto dto) {
 
+        FailedLoginAttemptsSession failedLoginAttemptsSession = 
+            failedLoginAttemptsSessionService.getSession(dto.login());
+
+        if (failedLoginAttemptsSession != null) {
+            if (failedLoginAttemptsSession.getEntryAttemptsRemaining() == 0) {
+                throw new TooManyAttemptsException("Достигнут лимит попыток войти в аккаунт. Попробуйте позже.");
+            }
+        }
+
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = 
             new UsernamePasswordAuthenticationToken(dto.login(), dto.password());
 
-        Authentication authentication = authenticationManager
-            .authenticate(usernamePasswordAuthenticationToken);
+        Authentication authentication;
+
+        try {
+            authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
+        } catch (BadCredentialsException exception) {
+
+            FailedLoginAttemptsSession session = failedLoginAttemptsSessionService.getSession(dto.login());
+
+            if (session == null) {
+                failedLoginAttemptsSessionService.saveSession(
+                    dto.login(), 
+                    new FailedLoginAttemptsSession(),
+                    Duration.ofMinutes(60)
+                );
+
+                throw new BadCredentialsException(exception.getMessage(), exception);
+            }
+
+            session.decrementEntryAttemptsRemaining();
+            failedLoginAttemptsSessionService.updateSession(dto.login(), session, Duration.ofMinutes(60));
+
+            throw new BadCredentialsException(exception.getMessage(), exception);
+        }    
 
         if (authentication.isAuthenticated()) {
             SecurityContextHolder.getContext().setAuthentication(authentication);

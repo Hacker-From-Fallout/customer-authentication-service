@@ -6,6 +6,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticationSession;
@@ -24,8 +25,13 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
         String username = authentication.getName();
         String password = (String) authentication.getCredentials();
+        CustomerUser customerUser;
         
-        CustomerUser customerUser = (CustomerUser) userDetailsService.loadUserByUsername(username);
+        try {
+            customerUser = (CustomerUser) userDetailsService.loadUserByUsername(username);
+        } catch (UsernameNotFoundException exception) {
+            throw new BadCredentialsException("Неверные учетные данные");
+        }
 
         if (passwordEncoder.matches(password, customerUser.getPassword())) {
             if (customerUser.isEmailFactorAuthEnabled() || customerUser.isPhoneNumberFactorAuthEnabled() || customerUser.isAuthenticatorAppFactorAuthEnabled()) {

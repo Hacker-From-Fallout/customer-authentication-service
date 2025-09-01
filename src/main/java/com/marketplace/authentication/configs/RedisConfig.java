@@ -7,10 +7,19 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticationSession;
 import com.marketplace.authentication.domain.dto.redis.CustomerUserRegistrationSession;
+import com.marketplace.authentication.domain.dto.redis.FailedLoginAttemptsSession;
 
 
 @Configuration
 public class RedisConfig<T> {
+
+    @Bean
+    public RedisTemplate<String, FailedLoginAttemptsSession> failedLoginAttemptsSessionRedisTemplate(
+        RedisConnectionFactory redisConnectionFactory) 
+    {
+        return RedisTemplateBuilder.buildJsonRedisTemplate(redisConnectionFactory, 
+            FailedLoginAttemptsSession.class);
+    }
 
     @Bean
     public RedisTemplate<String, CustomerUserRegistrationSession> customerUserRegistrationSessionRedisTemplate(
