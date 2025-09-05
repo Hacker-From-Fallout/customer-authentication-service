@@ -1,6 +1,7 @@
 package com.marketplace.authentication.security;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static final String HEADER_NAME = "Authorization";
     public final Function<String, Token> accessTokenJwsStringDeserializer;
     public final UserDetailsService userDetailsService;
+    public final BlacklistTokenService blacklistTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -32,8 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authenticationHeader = request.getHeader(HEADER_NAME);
 
         if (StringUtils.isEmpty(authenticationHeader) || !StringUtils.startsWith(authenticationHeader, BEARER_PREFIX)) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authorization header missing or invalid");
-            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -42,6 +43,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (accessToken == null) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
+            SecurityContextHolder.clearContext();
+            return;
+        }
+
+        if (blacklistTokenService.getToken(accessToken.id().toString()) != null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
+            SecurityContextHolder.clearContext();
+            return;
+        }
+
+        Instant now = Instant.now();
+        Instant expiration = accessToken.expiresAt();
+
+        if (expiration.isBefore(now)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
             SecurityContextHolder.clearContext();
             return;
         }

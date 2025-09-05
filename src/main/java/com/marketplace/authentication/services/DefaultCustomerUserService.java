@@ -23,6 +23,7 @@ import com.marketplace.authentication.exception.exceptions.UserNotFoundException
 import com.marketplace.authentication.producers.CustomerUserProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.repositories.specifications.CustomerUserSpecifications;
+import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
 import com.marketplace.authentication.security.OtpService;
 
@@ -36,7 +37,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
 
     private final CustomerUserRepository customerUserRepository;
     private final CustomerUserProducer customerUserProducer;
-    private final PasswordEncoder bCyPasswordEncoder;
+    private final BlacklistTokenService blacklistTokenService;
+    private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
     private final CryptoUtils cryptoUtils;
 
@@ -120,7 +122,7 @@ public class DefaultCustomerUserService implements CustomerUserService {
                 .username(dto.username())
                 .email(dto.email())
                 .phoneNumber(dto.phoneNumber())
-                .hashPassword(bCyPasswordEncoder.encode(dto.password()))
+                .hashPassword(passwordEncoder.encode(dto.password()))
                 .roles(dto.roles())
                 .authorities(dto.authorities())
                 .accountNonExpired(dto.accountNonExpired())
@@ -155,13 +157,15 @@ public class DefaultCustomerUserService implements CustomerUserService {
             customerUserProducer.updatePhoneNumber(id, dto.phoneNumber());
         }
         if (dto.password() != null) {
-            customerUser.setHashPassword(bCyPasswordEncoder.encode(dto.password()));
+            customerUser.setHashPassword(passwordEncoder.encode(dto.password()));
         }
         if(dto.roles() != null) {
             customerUser.setRoles(dto.roles());
+            addTokenInBlacklist(id);
         }
         if (dto.authorities() != null) {
             customerUser.setAuthorities(dto.authorities());
+            addTokenInBlacklist(id);
         }
         if (dto.accountNonExpired() != null) {
             customerUser.setAccountNonExpired(dto.accountNonExpired().booleanValue());
@@ -235,6 +239,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserRole role : roles) {
             customerUserRepository.addRole(userId, role.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -246,6 +252,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.addAuthority(userId, authority.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -350,6 +358,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
     public void addRole(Long userId, CustomerUserRole role) {
         ensureUserExists(userId);
         customerUserRepository.addRole(userId, role.name());
+
+        addTokenInBlacklist(userId);
     }
     
     @Override
@@ -359,6 +369,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserRole role : roles) {
             customerUserRepository.addRole(userId, role.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -366,6 +378,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
     public void removeRole(Long userId, CustomerUserRole role) {
         ensureUserExists(userId);
         customerUserRepository.removeRole(userId, role.name());
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -375,6 +389,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserRole role : roles) {
             customerUserRepository.removeRole(userId, role.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -382,6 +398,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
     public void addAuthority(Long userId, CustomerUserAuthority authority) {
         ensureUserExists(userId);
         customerUserRepository.addAuthority(userId, authority.name());
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -391,6 +409,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.addAuthority(userId, authority.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -398,6 +418,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
     public void removeAuthority(Long userId, CustomerUserAuthority authority) {
         ensureUserExists(userId);
         customerUserRepository.removeAuthority(userId , authority.name());
+
+        addTokenInBlacklist(userId);
     }
 
     @Override
@@ -407,6 +429,8 @@ public class DefaultCustomerUserService implements CustomerUserService {
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.removeAuthority(userId, authority.name());
         }
+
+        addTokenInBlacklist(userId);
     }
 
     public void isUsernameEmailPhoneAvailable(String username, String email, String phoneNumber) {
@@ -444,5 +468,10 @@ public class DefaultCustomerUserService implements CustomerUserService {
         if (customerUserRepository.existsByPhoneNumber(phoneNumber)) {
             throw new AlreadyExistsException("Пользователь с phoneNumber " + phoneNumber + " уже существует");
         }
+    }
+
+    private void addTokenInBlacklist(Long id)  {
+        String tokenId = customerUserRepository.getTokenId(id);
+        blacklistTokenService.saveToken(tokenId);
     }
 }

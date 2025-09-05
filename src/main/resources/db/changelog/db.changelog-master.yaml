@@ -87,6 +87,9 @@ databaseChangeLog:
                         name: encrypted_authenticator_app_confirmation_code_secret
                         type: VARCHAR(255)
                     - column:
+                        name: token_id
+                        type: VARCHAR(255)
+                    - column:
                         name: registration_date
                         type: TIMESTAMP
                         constraints:
@@ -96,7 +99,6 @@ databaseChangeLog:
                         type: TIMESTAMP
                         constraints:
                             nullable: false
-    
     - changeSet:
         id: create-trigram-index-customer-username
         author: root

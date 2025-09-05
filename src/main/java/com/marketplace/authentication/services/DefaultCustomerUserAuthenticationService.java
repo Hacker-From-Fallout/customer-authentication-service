@@ -1,6 +1,6 @@
 package com.marketplace.authentication.services;
 
-import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -23,8 +23,11 @@ import com.marketplace.authentication.domain.dto.request.CustomerUserAuthenticat
 import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 import com.marketplace.authentication.exception.exceptions.InvalidConfirmationCodeException;
+import com.marketplace.authentication.exception.exceptions.InvalidRefreshTokenException;
 import com.marketplace.authentication.exception.exceptions.TooManyAttemptsException;
 import com.marketplace.authentication.producers.ConfirmationProducer;
+import com.marketplace.authentication.repositories.CustomerUserRepository;
+import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
 import com.marketplace.authentication.security.CustomerUserAuthenticationSessionService;
 import com.marketplace.authentication.security.FailedLoginAttemptsSessionService;
@@ -37,20 +40,24 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DefaultCustomerUserAuthenticationService implements CustomerUserAuthenticationService {
 
+    private final CustomerUserRepository customerUserRepository;
     private final FailedLoginAttemptsSessionService failedLoginAttemptsSessionService;
     private final CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService;
+    private final BlacklistTokenService blacklistTokenService;
     private final AuthenticationManager authenticationManager;
     private final OtpService otpService;
     private final CryptoUtils cryptoUtils;
     private final ConfirmationProducer confirmationProducer;
     private final Function<Authentication, Token> refreshTokenFactory;
     private final Function<Token, Token> accessTokenFactory;
-    private final Function<Token, String> refreshTokenStringSerializer;
-    private final Function<Token, String> accessTokenStringSerializer;
+    private final Function<Token, String> refreshTokenJweStringSerializer;
+    private final Function<Token, String> accessTokenJwsStringSerializer;
+    private final Function<String, Token> refreshTokenJweStringDeserializer;
 
     @Value("${crypto.secret-key-aes}")
     private String secretKeyAES;
 
+    @Override
     @Transactional
     public AuthenticationResponse usernamePasswordAuthenticate(CustomerUserAuthenticationDto dto) {
 
@@ -75,17 +82,13 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             FailedLoginAttemptsSession session = failedLoginAttemptsSessionService.getSession(dto.login());
 
             if (session == null) {
-                failedLoginAttemptsSessionService.saveSession(
-                    dto.login(), 
-                    new FailedLoginAttemptsSession(),
-                    Duration.ofMinutes(60)
-                );
+                failedLoginAttemptsSessionService.saveSession(dto.login(), new FailedLoginAttemptsSession());
 
                 throw new BadCredentialsException(exception.getMessage(), exception);
             }
 
             session.decrementEntryAttemptsRemaining();
-            failedLoginAttemptsSessionService.updateSession(dto.login(), session, Duration.ofMinutes(60));
+            failedLoginAttemptsSessionService.updateSession(dto.login(), session);
 
             throw new BadCredentialsException(exception.getMessage(), exception);
         }    
@@ -96,10 +99,14 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             Token refreshToken = refreshTokenFactory.apply(authentication);
             Token accessToken = accessTokenFactory.apply(refreshToken);
             Tokens tokens = new Tokens(
-                accessTokenStringSerializer.apply(accessToken),
+                accessTokenJwsStringSerializer.apply(accessToken),
                 accessToken.expiresAt().toString(),
-                refreshTokenStringSerializer.apply(refreshToken),
+                refreshTokenJweStringSerializer.apply(refreshToken),
                 refreshToken.expiresAt().toString());
+
+            CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
+            addTokenInBlacklist(customerUser.getId());
+            customerUserRepository.updateTokenId(customerUser.getId(), refreshToken.id().toString());
 
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
@@ -110,7 +117,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             new CustomerUserAuthenticationSession((CustomerUser) authentication.getPrincipal());
 
         customerUserAuthenticationSessionService.
-            saveSession(sessionId.toString(), session, Duration.ofMinutes(5));
+            saveSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
             sessionId.toString(),
@@ -122,6 +129,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         );
     }
 
+    @Override
     @Transactional
     public AuthenticationResponse emailConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
         CustomerUserAuthenticationSession session = 
@@ -143,7 +151,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+            customerUserAuthenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
@@ -155,10 +163,14 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             Token refreshToken = refreshTokenFactory.apply(authentication);
             Token accessToken = accessTokenFactory.apply(refreshToken);
             Tokens tokens = new Tokens(
-                accessTokenStringSerializer.apply(accessToken),
+                accessTokenJwsStringSerializer.apply(accessToken),
                 accessToken.expiresAt().toString(),
-                refreshTokenStringSerializer.apply(refreshToken),
+                refreshTokenJweStringSerializer.apply(refreshToken),
                 refreshToken.expiresAt().toString());
+
+            CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
+            addTokenInBlacklist(customerUser.getId());
+            customerUserRepository.updateTokenId(customerUser.getId(), refreshToken.id().toString());
 
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
@@ -168,7 +180,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         session.setEmailConfirmationCode(null);
 
         customerUserAuthenticationSessionService.
-            updateSession(sessionId.toString(), session, Duration.ofMinutes(5));
+            updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
             sessionId.toString(),
@@ -180,6 +192,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         );
     }
 
+    @Override
     @Transactional
     public AuthenticationResponse phoneNumberConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
         CustomerUserAuthenticationSession session = 
@@ -201,7 +214,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+            customerUserAuthenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
@@ -213,10 +226,14 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             Token refreshToken = refreshTokenFactory.apply(authentication);
             Token accessToken = accessTokenFactory.apply(refreshToken);
             Tokens tokens = new Tokens(
-                accessTokenStringSerializer.apply(accessToken),
+                accessTokenJwsStringSerializer.apply(accessToken),
                 accessToken.expiresAt().toString(),
-                refreshTokenStringSerializer.apply(refreshToken),
+                refreshTokenJweStringSerializer.apply(refreshToken),
                 refreshToken.expiresAt().toString());
+
+            CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
+            addTokenInBlacklist(customerUser.getId());
+            customerUserRepository.updateTokenId(customerUser.getId(), refreshToken.id().toString());
 
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
@@ -226,7 +243,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         session.setPhoneNumberConfirmationCode(null);
 
         customerUserAuthenticationSessionService.
-            updateSession(sessionId.toString(), session, Duration.ofMinutes(5));
+            updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
             sessionId.toString(),
@@ -238,6 +255,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         );
     }
 
+    @Override
     @Transactional
     public AuthenticationResponse authenticatorAppConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
         CustomerUserAuthenticationSession session = 
@@ -261,7 +279,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+            customerUserAuthenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
@@ -273,10 +291,14 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             Token refreshToken = refreshTokenFactory.apply(authentication);
             Token accessToken = accessTokenFactory.apply(refreshToken);
             Tokens tokens = new Tokens(
-                accessTokenStringSerializer.apply(accessToken),
+                accessTokenJwsStringSerializer.apply(accessToken),
                 accessToken.expiresAt().toString(),
-                refreshTokenStringSerializer.apply(refreshToken),
+                refreshTokenJweStringSerializer.apply(refreshToken),
                 refreshToken.expiresAt().toString());
+
+            CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
+            addTokenInBlacklist(customerUser.getId());
+            customerUserRepository.updateTokenId(customerUser.getId(), refreshToken.id().toString());
 
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
@@ -286,7 +308,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         session.setAuthenticatorAppConfirmationCode(null);
 
         customerUserAuthenticationSessionService.
-            updateSession(sessionId.toString(), session, Duration.ofMinutes(5));
+            updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
             sessionId.toString(),
@@ -298,6 +320,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         );
     }
 
+    @Override
     @Transactional
     public void sendEmailConfirmationCodeForAuthSession(String sessionId) {
         CustomerUserAuthenticationSession session = 
@@ -309,7 +332,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserAuthenticationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+        customerUserAuthenticationSessionService.updateSession(sessionId, session);
 
         String encryptedEmailConfirmationCodeSecret = session.getPrincipal().getEncryptedEmailConfirmationCodeSecret();
         String emailConfirmationCodeSecret = cryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret);
@@ -324,6 +347,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         System.out.println("=========================================");
     }
 
+    @Override
     @Transactional
     public void sendPhoneNumberConfirmationCodeForAuthSession(String sessionId) {
         CustomerUserAuthenticationSession session = 
@@ -335,7 +359,7 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserAuthenticationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+        customerUserAuthenticationSessionService.updateSession(sessionId, session);
 
         String encryptedPhoneNumberConfirmationCodeSecret = session.getPrincipal().getEncryptedPhoneNumberConfirmationCodeSecret();
         String phoneNumberConfirmationCodeSecret = cryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret);
@@ -352,6 +376,38 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
 
     @Override
     public String refreshAccessToken(String refreshToken) {
-        throw new UnsupportedOperationException("Unimplemented method 'refreshAccessToken'");
+
+        Token token = refreshTokenJweStringDeserializer.apply(refreshToken);
+
+        if (token == null) {
+            throw new InvalidRefreshTokenException("Invalid refresh token");
+        }
+
+        Instant now = Instant.now();
+        Instant expiration = token.expiresAt();
+
+        if (expiration.isBefore(now)) {
+            throw new InvalidRefreshTokenException("Token expired");
+        }
+
+        Token accessToken = accessTokenFactory.apply(token);
+
+        return accessTokenJwsStringSerializer.apply(accessToken);
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        Token token = refreshTokenJweStringDeserializer.apply(refreshToken);
+
+        if (token == null) {
+            throw new InvalidRefreshTokenException("Invalid refresh token");
+        }
+
+        blacklistTokenService.saveToken(token.id().toString());
+    }
+
+    private void addTokenInBlacklist(Long id)  {
+        String tokenId = customerUserRepository.getTokenId(id);
+        blacklistTokenService.saveToken(tokenId);
     }
 }

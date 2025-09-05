@@ -1,6 +1,5 @@
 package com.marketplace.authentication.services;
 
-import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -50,6 +49,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
     @Value("${crypto.secret-key-aes}")
     private String secretKeyAES;
 
+    @Override
     @Transactional
     public UUID initiateRegistration(CustomerUserCreateDto dto) {
         customerUserService.isUsernameEmailPhoneAvailable(dto.username(), dto.email(), dto.phoneNumber());
@@ -86,7 +86,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
             .encryptedPhoneNumberConfirmationCodeSecret(encryptedPhoneNumberConfirmationCodeSecret)
             .build();
 
-        customerUserRegistrationSessionService.saveSession(sessionId.toString(), session, Duration.ofMinutes(5));
+        customerUserRegistrationSessionService.saveSession(sessionId.toString(), session);
 
         confirmationProducer.emailConfirmation(emailConfirmationCodeDto);
         confirmationProducer.phoneNumberConfirmation(phoneNumberConfirmationCodeDto);
@@ -99,6 +99,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
         return sessionId;
     }
 
+    @Override
     @Transactional
     public Tokens confirmationRegistration(String sessionId, ConfirmationRegistrarionCodesDto dto) {
 
@@ -121,7 +122,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
 
         if (!(emailConfirmationCodeValid && phoneNumberConfirmationCodeValid)) {
             session.decrementCodeEntryAttempts();
-            customerUserRegistrationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+            customerUserRegistrationSessionService.updateSession(sessionId, session);
             throw new VerificationRegistrationCodesException("Коды просрочены или введены неправильно.");
         }
 
@@ -170,9 +171,12 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
             refreshTokenStringSerializer.apply(refreshToken),
             refreshToken.expiresAt().toString());
 
+        customerUserRepository.updateTokenId(customerUser.getId(), refreshToken.id().toString());
+
         return tokens;
     }
 
+    @Override
     @Transactional
     public void resendConfirmationRegistrationCodes(String sessionId) {
 
@@ -184,7 +188,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserRegistrationSessionService.updateSession(sessionId, session, Duration.ofMinutes(5));
+        customerUserRegistrationSessionService.updateSession(sessionId, session);
 
         String encryptedEmailConfirmationCodeSecret = session.getEncryptedEmailConfirmationCodeSecret();
         String encryptedPhoneNumberConfirmationCodeSecret = session.getEncryptedPhoneNumberConfirmationCodeSecret();

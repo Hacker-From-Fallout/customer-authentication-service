@@ -48,8 +48,8 @@ public class RegistrationConfig {
     private String refreshTokenKey;
 
     @Bean CustomerUserRegistrationService customerUserRegistrationService(
-        @Qualifier("refreshTokenStringSerializer") Function<Token, String> refreshTokenStringSerializer,
-        @Qualifier("accessTokenStringSerializer") Function<Token, String> accessTokenStringSerializer
+        @Qualifier("refreshTokenJweStringSerializer") Function<Token, String> refreshTokenJweStringSerializer,
+        @Qualifier("accessTokenJwsStringSerializer") Function<Token, String> accessTokenJwsStringSerializer
     ) {
         return new DefaultCustomerUserRegistrationService(
             customerUserService,
@@ -62,8 +62,8 @@ public class RegistrationConfig {
             passwordEncoder,
             refreshTokenFactory,
             accessTokenFactory,
-            refreshTokenStringSerializer,
-            accessTokenStringSerializer
+            refreshTokenJweStringSerializer,
+            accessTokenJwsStringSerializer
         );
     }
 }

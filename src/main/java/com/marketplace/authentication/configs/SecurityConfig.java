@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
 import com.marketplace.authentication.security.AccessTokenJwsStringDeserializer;
 import com.marketplace.authentication.security.AccessTokenJwsStringSerializer;
+import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
 import com.marketplace.authentication.security.DefaultAccessTokenFactory;
 import com.marketplace.authentication.security.DefaultRefreshTokenFactory;
@@ -49,8 +51,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http.authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
-            .requestMatchers(HttpMethod.GET, "/api/customer-users").hasRole("CUSTOMER_EXPERIMENTAL")
+            .requestMatchers(HttpMethod.GET, "/api/customer-users").authenticated()
             .anyRequest().permitAll())
+            .sessionManagement(sessionManagement ->
+                sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(exception ->
                 exception.authenticationEntryPoint((request, response, authException) -> {
@@ -87,8 +91,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Qualifier("accessTokenStringSerializer")
-    public Function<Token, String> accessTokenStringSerializer() {
+    @Qualifier("accessTokenJwsStringSerializer")
+    public Function<Token, String> accessTokenJwsStringSerializer() {
         try {
             return new AccessTokenJwsStringSerializer(
                 new MACSigner(OctetSequenceKey.parse(accessTokenKey))
@@ -99,8 +103,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Qualifier("refreshTokenStringSerializer")
-    public Function<Token, String> refreshTokenStringSerializer() {
+    @Qualifier("refreshTokenJweStringSerializer")
+    public Function<Token, String> refreshTokenJweStringSerializer() {
         try {
             return new RefreshTokenJweStringSerializer(
                 new DirectEncrypter(OctetSequenceKey.parse(refreshTokenKey))
@@ -137,8 +141,12 @@ public class SecurityConfig {
     @Bean 
     public JwtAuthenticationFilter jwtAuthenticationFilter(
         @Qualifier("accessTokenJwsStringDeserializer") Function<String, Token> accessTokenJwsStringDeserializer,
-        UserDetailsService userDetailsService
+        UserDetailsService userDetailsService,
+        BlacklistTokenService blacklistTokenService
     ) {
-        return new JwtAuthenticationFilter(accessTokenJwsStringDeserializer, userDetailsService);
+        return new JwtAuthenticationFilter(
+            accessTokenJwsStringDeserializer, 
+            userDetailsService, 
+            blacklistTokenService);
     } 
 }

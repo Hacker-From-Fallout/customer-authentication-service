@@ -13,7 +13,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.marketplace.authentication.producers.ConfirmationProducer;
+import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.security.AuthenticatorAppConfirmationCodeAuthenticationProvider;
+import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
 import com.marketplace.authentication.security.CustomerUserAuthenticationSessionService;
 import com.marketplace.authentication.security.DefaultAccessTokenFactory;
@@ -33,8 +35,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthenticationConfig {
 
+    private final CustomerUserRepository customerUserRepository;
     private final FailedLoginAttemptsSessionService failedLoginAttemptsSessionService;
     private final CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService;
+    private final BlacklistTokenService blacklistTokenService;
     private final OtpService otpService;
     private final CryptoUtils cryptoUtils;
     private final ConfirmationProducer confirmationProducer;
@@ -79,21 +83,25 @@ public class AuthenticationConfig {
 
     @Bean
     public CustomerUserAuthenticationService customerUserAuthenticationService(
-        @Qualifier("refreshTokenStringSerializer") Function<Token, String> refreshTokenStringSerializer,
-        @Qualifier("accessTokenStringSerializer") Function<Token, String> accessTokenStringSerializer,
+        @Qualifier("refreshTokenJweStringSerializer") Function<Token, String> refreshTokenJweStringSerializer,
+        @Qualifier("accessTokenJwsStringSerializer") Function<Token, String> accessTokenJwsStringSerializer,
+        @Qualifier("refreshTokenJweStringDeserializer") Function<String, Token> refreshTokenJweStringDeserializer,
         AuthenticationManager authenticationManager
     ) {
         return new DefaultCustomerUserAuthenticationService(
+            customerUserRepository,
             failedLoginAttemptsSessionService,
             customerUserAuthenticationSessionService,
+            blacklistTokenService,
             authenticationManager,
             otpService,
             cryptoUtils,
             confirmationProducer,
             refreshTokenFactory,
             accessTokenFactory,
-            refreshTokenStringSerializer,
-            accessTokenStringSerializer
+            refreshTokenJweStringSerializer,
+            accessTokenJwsStringSerializer,
+            refreshTokenJweStringDeserializer
         );
     }
 }

@@ -19,6 +19,9 @@ public interface CustomerUserRepository extends JpaRepository<CustomerUser, Long
     Optional<CustomerUser> findByEmail(String email);
     Optional<CustomerUser> findByPhoneNumber(String phoneNumber);
 
+    @Query(value = "SELECT u.token_id FROM customer_users u WHERE u.id = :id", nativeQuery = true)
+    String getTokenId(@Param("id") Long id);
+
     @Modifying
     @Query(value = "UPDATE customer_users u SET username = :username WHERE u.id = :id", nativeQuery = true)
     void updateUsername(@Param("id") Long id, @Param("username") String username);
@@ -74,6 +77,10 @@ public interface CustomerUserRepository extends JpaRepository<CustomerUser, Long
     @Modifying
     @Query(value = "UPDATE customer_users u SET encrypted_authenticator_app_confirmation_code_secret= :encrypted_secret WHERE u.id= :id", nativeQuery = true)
     void updateEncryptedAuthenticatorAppConfirmationCodeSecret(@Param("id") Long id, @Param("encrypted_secret") String encryptedSecret);
+
+    @Modifying
+    @Query(value = "UPDATE customer_users u SET token_id= :token_id WHERE u.id= :id", nativeQuery = true)
+    void updateTokenId(@Param("id") Long id, @Param("token_id") String tokenId);
     
     @Modifying
     @Query(value = "UPDATE customer_users u SET last_login_date = :last_login_date WHERE u.id = :id", nativeQuery = true)

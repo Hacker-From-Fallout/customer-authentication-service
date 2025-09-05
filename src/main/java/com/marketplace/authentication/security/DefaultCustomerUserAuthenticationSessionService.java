@@ -16,18 +16,19 @@ import lombok.RequiredArgsConstructor;
 public class DefaultCustomerUserAuthenticationSessionService implements CustomerUserAuthenticationSessionService {
 
     private final RedisTemplate<String, CustomerUserAuthenticationSession> jsonRedisTemplate;
+    private final Duration timeout = Duration.ofMinutes(5);
 
     public CustomerUserAuthenticationSession getSession(String sessionId) {
         return Optional.ofNullable(jsonRedisTemplate.opsForValue().get(sessionId))
             .orElseThrow(() -> new RegistrationSessionNotFound("Аутентификационная сессия не найдена c id: " + sessionId));
     }
 
-    public void saveSession(String sessionId, CustomerUserAuthenticationSession session, Duration timeout) {
-        jsonRedisTemplate.opsForValue().set(sessionId, session, timeout);
+    public void saveSession(String sessionId, CustomerUserAuthenticationSession session) {
+        jsonRedisTemplate.opsForValue().set(sessionId, session, this.timeout);
     }
 
-    public void updateSession(String sessionId, CustomerUserAuthenticationSession session, Duration timeout) {
-        jsonRedisTemplate.opsForValue().set(sessionId, session, timeout);
+    public void updateSession(String sessionId, CustomerUserAuthenticationSession session) {
+        jsonRedisTemplate.opsForValue().set(sessionId, session, this.timeout);
     }
 
     public void deleteSession(String sessionId) {

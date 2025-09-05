@@ -23,6 +23,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.marketplace.authentication.exception.exceptions.AlreadyExistsException;
 import com.marketplace.authentication.exception.exceptions.AuthenticationSessionNotFound;
 import com.marketplace.authentication.exception.exceptions.InvalidConfirmationCodeException;
+import com.marketplace.authentication.exception.exceptions.InvalidRefreshTokenException;
 import com.marketplace.authentication.exception.exceptions.RegistrationSessionNotFound;
 import com.marketplace.authentication.exception.exceptions.TooManyAttemptsException;
 import com.marketplace.authentication.exception.exceptions.UserNotFoundException;
@@ -73,6 +74,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                this.messageSource.getMessage(exception.getMessage(), new Object[0],
+                    exception.getMessage(), locale)));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidRefreshTokenException(InvalidRefreshTokenException exception,
+        Locale locale) {
+        log.info("InvalidRefreshTokenException: {}", exception.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
                 this.messageSource.getMessage(exception.getMessage(), new Object[0],
                     exception.getMessage(), locale)));
     }

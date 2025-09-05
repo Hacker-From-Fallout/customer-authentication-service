@@ -7,6 +7,8 @@ import com.marketplace.authentication.domain.dto.request.ConfirmationCodeDto;
 import com.marketplace.authentication.domain.dto.request.ConfirmationRegistrarionCodesDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserAuthenticationDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserCreateDto;
+import com.marketplace.authentication.domain.dto.request.RefreshTokenDto;
+import com.marketplace.authentication.domain.dto.response.AccessTokenDto;
 import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 import com.marketplace.authentication.domain.dto.response.RegistrationSessionId;
 import com.marketplace.authentication.security.Tokens;
@@ -122,6 +124,18 @@ public class CustomerUserAuthenticationController {
     @PostMapping("/send-phone-number-code/{sessionId}")
     public ResponseEntity<?> sendPhoneNumberConfirmationCodeForAuthSession(@PathVariable String sessionId) {
         customerUserAuthenticationService.sendPhoneNumberConfirmationCodeForAuthSession(sessionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/refresh-access-token")
+    public ResponseEntity<?> refreshAccessToken(@Valid @RequestBody RefreshTokenDto dto) {
+        String accessToken = customerUserAuthenticationService.refreshAccessToken(dto.refreshToken());
+        return ResponseEntity.ok().body(new AccessTokenDto(accessToken));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@Valid @RequestBody RefreshTokenDto dto) {
+        customerUserAuthenticationService.logout(dto.refreshToken());
         return ResponseEntity.noContent().build();
     }
 }

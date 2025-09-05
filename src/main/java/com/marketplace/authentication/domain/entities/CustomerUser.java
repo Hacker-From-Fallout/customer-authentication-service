@@ -119,6 +119,9 @@ public class CustomerUser implements UserDetails {
     @Column(name = "encrypted_authenticator_app_confirmation_code_secret")
     private String encryptedAuthenticatorAppConfirmationCodeSecret;
 
+    @Column(name = "token_id")
+    private String tokenId;
+
     @Column(name = "registration_date", nullable = false)
     private final LocalDateTime registrationDate = LocalDateTime.now();
 

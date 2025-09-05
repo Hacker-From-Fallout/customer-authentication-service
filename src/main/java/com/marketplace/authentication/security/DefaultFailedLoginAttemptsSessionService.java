@@ -14,17 +14,18 @@ import lombok.RequiredArgsConstructor;
 public class DefaultFailedLoginAttemptsSessionService implements FailedLoginAttemptsSessionService {
 
     private final RedisTemplate<String, FailedLoginAttemptsSession> jsonRedisTemplate;
+    private final Duration timeout = Duration.ofMinutes(60);
 
     public FailedLoginAttemptsSession getSession(String sessionId) {
         return jsonRedisTemplate.opsForValue().get(sessionId);
     }
 
-    public void saveSession(String sessionId, FailedLoginAttemptsSession session, Duration timeout) {
-        jsonRedisTemplate.opsForValue().set(sessionId, session, timeout);
+    public void saveSession(String sessionId, FailedLoginAttemptsSession session) {
+        jsonRedisTemplate.opsForValue().set(sessionId, session, this.timeout);
     }
 
-    public void updateSession(String sessionId, FailedLoginAttemptsSession session, Duration timeout) {
-        jsonRedisTemplate.opsForValue().set(sessionId, session, timeout);
+    public void updateSession(String sessionId, FailedLoginAttemptsSession session) {
+        jsonRedisTemplate.opsForValue().set(sessionId, session, this.timeout);
     }
 
     public void deleteSession(String sessionId) {
