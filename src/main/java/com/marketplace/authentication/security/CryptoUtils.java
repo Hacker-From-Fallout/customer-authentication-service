@@ -7,14 +7,12 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
-@Component
+@RequiredArgsConstructor
 public class CryptoUtils {
 
-    @Value("${crypto.secret-key-aes}")
-    private String base64SecretKeyAES;
+    private final String base64SecretKeyAES;
 
     public String generateAESKey() {
         try {

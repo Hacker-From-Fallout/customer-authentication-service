@@ -11,6 +11,7 @@ import com.marketplace.authentication.domain.dto.response.AuthenticationResponse
 import com.marketplace.authentication.domain.dto.response.RegistrationSessionId;
 import com.marketplace.authentication.security.Tokens;
 import com.marketplace.authentication.services.CustomerUserAuthenticationService;
+import com.marketplace.authentication.services.CustomerUserRegistrationService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class CustomerUserAuthenticationController {
 
     private final CustomerUserAuthenticationService customerUserAuthenticationService;
+    private final CustomerUserRegistrationService customerUserRegistrationService;
 
     @PostMapping("/initiate-registration")
     public ResponseEntity<?> initiateRegistration(@Valid @RequestBody CustomerUserCreateDto dto, 
@@ -44,7 +46,7 @@ public class CustomerUserAuthenticationController {
             }
         }
 
-        UUID sessionId = customerUserAuthenticationService.initiateRegistration(dto);
+        UUID sessionId = customerUserRegistrationService.initiateRegistration(dto);
         
         return ResponseEntity.status(HttpStatus.OK).body(new RegistrationSessionId(sessionId.toString()));
     }
@@ -60,14 +62,14 @@ public class CustomerUserAuthenticationController {
             }
         }
 
-        Tokens tokens = customerUserAuthenticationService.confirmationRegistration(sessionId, dto);
+        Tokens tokens = customerUserRegistrationService.confirmationRegistration(sessionId, dto);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(tokens);
     }
 
     @PostMapping("/resend-confirmation-registration/{sessionId}")
     public ResponseEntity<?> resendConfirmationRegistrationCodes(@PathVariable String sessionId) {
-        customerUserAuthenticationService.resendConfirmationRegistrationCodes(sessionId);
+        customerUserRegistrationService.resendConfirmationRegistrationCodes(sessionId);
         return ResponseEntity.noContent().build();
     }
 

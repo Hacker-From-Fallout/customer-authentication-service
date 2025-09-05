@@ -27,6 +27,7 @@ public class RedisTemplateBuilder {
         redisTemplate.setKeySerializer(redisTemplate.getStringSerializer());
         redisTemplate.setValueSerializer(serializer);
 
+        redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
 }

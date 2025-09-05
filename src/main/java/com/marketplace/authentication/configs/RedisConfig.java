@@ -9,7 +9,6 @@ import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticatio
 import com.marketplace.authentication.domain.dto.redis.CustomerUserRegistrationSession;
 import com.marketplace.authentication.domain.dto.redis.FailedLoginAttemptsSession;
 
-
 @Configuration
 public class RedisConfig<T> {
 
