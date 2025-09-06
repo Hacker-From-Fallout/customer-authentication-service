@@ -45,7 +45,7 @@ public class SecurityConfig {
     @Value("${jwt.refresh-token-key}") 
     private String refreshTokenKey;
 
-    @Value("${crypto.secret-key-aes}")
+    @Value("${crypto.base64-secret-key-aes}")
     private String base64SecretKeyAES;
 
     @Bean

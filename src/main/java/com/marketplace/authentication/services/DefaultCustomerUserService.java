@@ -20,7 +20,7 @@ import com.marketplace.authentication.domain.dto.request.CustomerUserUpdateDto;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 import com.marketplace.authentication.exception.exceptions.AlreadyExistsException;
 import com.marketplace.authentication.exception.exceptions.UserNotFoundException;
-import com.marketplace.authentication.producers.CustomerUserProducer;
+import com.marketplace.authentication.producers.CustomerProfileProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.repositories.specifications.CustomerUserSpecifications;
 import com.marketplace.authentication.security.BlacklistTokenService;
@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DefaultCustomerUserService implements CustomerUserService {
 
     private final CustomerUserRepository customerUserRepository;
-    private final CustomerUserProducer customerUserProducer;
+    private final CustomerProfileProducer customerProfileProducer;
     private final BlacklistTokenService blacklistTokenService;
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
@@ -106,7 +106,7 @@ public class DefaultCustomerUserService implements CustomerUserService {
             customerDto.email(),
             customerDto.phoneNumber());
 
-        customerUserProducer.createProfile(profileDto);
+        customerProfileProducer.createProfile(profileDto);
 
         return customerUser;
     }
@@ -144,17 +144,17 @@ public class DefaultCustomerUserService implements CustomerUserService {
         if (dto.username() != null) {
             existsByUsername(dto.username());
             customerUser.setUsername(dto.username());;
-            customerUserProducer.updateUsername(id, dto.username());
+            customerProfileProducer.updateUsername(id, dto.username());
         }
         if (dto.email() != null) {
             existsByEmail(dto.email());
             customerUser.setEmail(dto.email());
-            customerUserProducer.updateEmail(id, dto.email());
+            customerProfileProducer.updateEmail(id, dto.email());
         }
         if (dto.phoneNumber() != null) {
             existsByPhoneNumber(dto.phoneNumber());
             customerUser.setPhoneNumber(dto.phoneNumber());
-            customerUserProducer.updatePhoneNumber(id, dto.phoneNumber());
+            customerProfileProducer.updatePhoneNumber(id, dto.phoneNumber());
         }
         if (dto.password() != null) {
             customerUser.setHashPassword(passwordEncoder.encode(dto.password()));
@@ -199,95 +199,82 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void updateUsername(Long id, String username) {
-        ensureUserExists(id);
         existsByUsername(username);
         customerUserRepository.updateUsername(id, username);
-        customerUserProducer.updateUsername(id, username);
+        customerProfileProducer.updateUsername(id, username);
     }
 
     @Override
     @Transactional
     public void updateEmail(Long id, String email) {
-        ensureUserExists(id);
         existsByEmail(email);
         customerUserRepository.updateEmail(id, email);
-        customerUserProducer.updateEmail(id, email);
+        customerProfileProducer.updateEmail(id, email);
     }
 
     @Override
     @Transactional
     public void updatePhoneNumber(Long id, String phoneNumber) {
-        ensureUserExists(id);
         existsByPhoneNumber(phoneNumber);
         customerUserRepository.updatePhoneNumber(id, phoneNumber);
-        customerUserProducer.updatePhoneNumber(id, phoneNumber);
+        customerProfileProducer.updatePhoneNumber(id, phoneNumber);
     }
 
     @Override
     @Transactional
     public void updateHashPassword(Long id, String hashPassword) {
-        ensureUserExists(id);
         customerUserRepository.updateHashPassword(id, hashPassword);
     }
 
     @Override
     @Transactional
     public void updateRoles(Long userId, EnumSet<CustomerUserRole> roles) {
-        ensureUserExists(userId);
         customerUserRepository.deleteAllRoles(userId);
+        addTokenInBlacklist(userId);
 
         for (CustomerUserRole role : roles) {
             customerUserRepository.addRole(userId, role.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void updateAuthorities(Long userId, EnumSet<CustomerUserAuthority> authorities) {
-        ensureUserExists(userId);
         customerUserRepository.deleteAllAuthorities(userId);
+        addTokenInBlacklist(userId);
 
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.addAuthority(userId, authority.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void updateAccountNonExpired(Long id, boolean accountNonExpired) {
-        ensureUserExists(id);
         customerUserRepository.updateAccountNonExpired(id, accountNonExpired);
     }
 
     @Override
     @Transactional
     public void updateAccountNonLocked(Long id, boolean accountNonLocked) {
-        ensureUserExists(id);
         customerUserRepository.updateAccountNonLocked(id, accountNonLocked);
     }
 
     @Override
     @Transactional
     public void updateCredentialsNonExpired(Long id, boolean credentialsNonExpired) {
-        ensureUserExists(id);
         customerUserRepository.updateCredentialsNonExpired(id, credentialsNonExpired);
     }
 
     @Override
     @Transactional
     public void updateEnabled(Long id, boolean enabled) {
-        ensureUserExists(id);
         customerUserRepository.updateEnabled(id, enabled);
     }
 
     @Override
     @Transactional
     public void enableEmailFactorAuth(Long id) {
-        ensureUserExists(id);
 
         String emailConfirmationCodeSecret = otpService.generateSecret();
         String encryptedEmailConfirmationCodeSecret = cryptoUtils.encrypt(emailConfirmationCodeSecret);
@@ -299,7 +286,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void enablePhoneNumberFactorAuth(Long id) {
-        ensureUserExists(id);
 
         String phoneNumberConfirmationCodeSecret = otpService.generateSecret();
         String encryptedPhoneNumberConfirmationCodeSecret = cryptoUtils.encrypt(phoneNumberConfirmationCodeSecret);
@@ -311,7 +297,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public String enableAuthenticatorAppFactorAuth(Long id) {
-        ensureUserExists(id);
 
         String authenticatorAppConfirmationCodeSecret = otpService.generateSecret();
         String encryptedAuthenticatorAppConfirmationCodeSecret = cryptoUtils.encrypt(authenticatorAppConfirmationCodeSecret);
@@ -325,7 +310,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void disableEmailFactorAuth(Long id) {
-        ensureUserExists(id);
         customerUserRepository.updateEmailFactorAuthEnabled(id, false);
         customerUserRepository.updateEncryptedEmailConfirmationCodeSecret(id, null);
     }
@@ -333,7 +317,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void disablePhoneNumberFactorAuth(Long id) {
-        ensureUserExists(id);
         customerUserRepository.updatePhoneNumberFactorAuthEnabled(id, false);
         customerUserRepository.updateEncryptedPhoneNumberConfirmationCodeSecret(id, null);
     }
@@ -341,7 +324,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void disableAuthenticatorAppFactorAuth(Long id) {
-        ensureUserExists(id);
         customerUserRepository.updateAuthenticatorAppFactorAuthEnabled(id, false);
         customerUserRepository.updateEncryptedAuthenticatorAppConfirmationCodeSecret(id, null);
     }
@@ -349,88 +331,75 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Override
     @Transactional
     public void updateLastLoginDate(Long id, LocalDateTime lastLoginDate) {
-        ensureUserExists(id);
         customerUserRepository.updateLastLoginDate(id, lastLoginDate);
     }
 
     @Override
     @Transactional
     public void addRole(Long userId, CustomerUserRole role) {
-        ensureUserExists(userId);
         customerUserRepository.addRole(userId, role.name());
-
         addTokenInBlacklist(userId);
     }
     
     @Override
     @Transactional
     public void addRoles(Long userId, EnumSet<CustomerUserRole> roles) {
-        ensureUserExists(userId);
+        addTokenInBlacklist(userId);
+
         for (CustomerUserRole role : roles) {
             customerUserRepository.addRole(userId, role.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void removeRole(Long userId, CustomerUserRole role) {
-        ensureUserExists(userId);
         customerUserRepository.removeRole(userId, role.name());
-
         addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void removeRoles(Long userId, EnumSet<CustomerUserRole> roles) {
-        ensureUserExists(userId);
+        addTokenInBlacklist(userId);
+
         for (CustomerUserRole role : roles) {
             customerUserRepository.removeRole(userId, role.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void addAuthority(Long userId, CustomerUserAuthority authority) {
-        ensureUserExists(userId);
         customerUserRepository.addAuthority(userId, authority.name());
-
         addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void addAuthorities(Long userId, EnumSet<CustomerUserAuthority> authorities) {
-        ensureUserExists(userId);
+        addTokenInBlacklist(userId);
+
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.addAuthority(userId, authority.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void removeAuthority(Long userId, CustomerUserAuthority authority) {
-        ensureUserExists(userId);
         customerUserRepository.removeAuthority(userId , authority.name());
-
         addTokenInBlacklist(userId);
     }
 
     @Override
     @Transactional
     public void removeAuthorities(Long userId, EnumSet<CustomerUserAuthority> authorities) {
-        ensureUserExists(userId);
+        addTokenInBlacklist(userId);
+
         for (CustomerUserAuthority authority : authorities) {
             customerUserRepository.removeAuthority(userId, authority.name());
         }
-
-        addTokenInBlacklist(userId);
     }
 
     public void isUsernameEmailPhoneAvailable(String username, String email, String phoneNumber) {
@@ -443,13 +412,7 @@ public class DefaultCustomerUserService implements CustomerUserService {
     @Transactional
     public void deleteById(Long id){
         customerUserRepository.deleteById(id);
-        customerUserProducer.deleteProfile(id);
-    }
-
-    private void ensureUserExists(Long id) {
-        if (!customerUserRepository.existsById(id)) {
-            throw new UserNotFoundException("Пользователь не найден с id: " + id);
-        }
+        customerProfileProducer.deleteProfile(id);
     }
 
     private void existsByUsername(String username) {

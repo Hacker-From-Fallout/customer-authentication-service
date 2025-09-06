@@ -16,7 +16,7 @@ import lombok.Setter;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CustomerUserRegistrationSession {
+public class RegistrationSession {
     private String firstName;
     private String lastName;
     private String username;

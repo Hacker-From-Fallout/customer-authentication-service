@@ -43,15 +43,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/customer-users")
+@RequestMapping("/api")
 public class CustomerUserController {
 
     private final CustomerUserService customerUserService;
-
-    @GetMapping("/test")
-    public String test() {
-        return "test";
-    }
 
     @GetMapping
     public ResponseEntity<Page<CustomerUserResponseDto>> getAll(

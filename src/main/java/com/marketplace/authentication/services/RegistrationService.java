@@ -6,7 +6,7 @@ import com.marketplace.authentication.domain.dto.request.ConfirmationRegistrario
 import com.marketplace.authentication.domain.dto.request.CustomerUserCreateDto;
 import com.marketplace.authentication.security.Tokens;
 
-public interface CustomerUserRegistrationService {
+public interface RegistrationService {
     UUID initiateRegistration(CustomerUserCreateDto dto);
     Tokens confirmationRegistration(String sessionId, ConfirmationRegistrarionCodesDto dto);
     void resendConfirmationRegistrationCodes(String sessionId);

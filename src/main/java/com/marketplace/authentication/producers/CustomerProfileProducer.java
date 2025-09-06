@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class CustomerUserProducer {
+public class CustomerProfileProducer {
 
     private final KafkaTemplate<String, Object> jsonKafkaTemplate;
     private final KafkaTemplate<String, Long> longKafkaTemplate;

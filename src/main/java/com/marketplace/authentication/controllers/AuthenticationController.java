@@ -12,8 +12,8 @@ import com.marketplace.authentication.domain.dto.response.AccessTokenDto;
 import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 import com.marketplace.authentication.domain.dto.response.RegistrationSessionId;
 import com.marketplace.authentication.security.Tokens;
-import com.marketplace.authentication.services.CustomerUserAuthenticationService;
-import com.marketplace.authentication.services.CustomerUserRegistrationService;
+import com.marketplace.authentication.services.AuthenticationService;
+import com.marketplace.authentication.services.RegistrationService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,15 +28,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth/customer-users")
-public class CustomerUserAuthenticationController {
+@RequestMapping("/api/auth")
+public class AuthenticationController {
 
-    private final CustomerUserAuthenticationService customerUserAuthenticationService;
-    private final CustomerUserRegistrationService customerUserRegistrationService;
+    private final AuthenticationService authenticationService;
+    private final RegistrationService registrationService;
 
     @PostMapping("/initiate-registration")
     public ResponseEntity<?> initiateRegistration(@Valid @RequestBody CustomerUserCreateDto dto) {
-        UUID sessionId = customerUserRegistrationService.initiateRegistration(dto);
+        UUID sessionId = registrationService.initiateRegistration(dto);
         return ResponseEntity.status(HttpStatus.OK).body(new RegistrationSessionId(sessionId.toString()));
     }
 
@@ -44,20 +44,20 @@ public class CustomerUserAuthenticationController {
     public ResponseEntity<?> confirmationRegistration(@PathVariable String sessionId, 
         @Valid @RequestBody ConfirmationRegistrarionCodesDto dto) {
 
-        Tokens tokens = customerUserRegistrationService.confirmationRegistration(sessionId, dto);
+        Tokens tokens = registrationService.confirmationRegistration(sessionId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(tokens);
     }
 
     @PostMapping("/resend-confirmation-registration/{sessionId}")
     public ResponseEntity<?> resendConfirmationRegistrationCodes(@PathVariable String sessionId) {
-        customerUserRegistrationService.resendConfirmationRegistrationCodes(sessionId);
+        registrationService.resendConfirmationRegistrationCodes(sessionId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> usernamePasswordAuthenticate(@Valid @RequestBody CustomerUserAuthenticationDto dto) {
         AuthenticationResponse authenticationResponse = 
-            customerUserAuthenticationService.usernamePasswordAuthenticate(dto);
+            authenticationService.usernamePasswordAuthenticate(dto);
 
         return authenticationResponse.authenticated() 
             ? ResponseEntity.ok().body(authenticationResponse)
@@ -67,7 +67,7 @@ public class CustomerUserAuthenticationController {
     @PostMapping("/confirmation-email/{sessionId}")
     public ResponseEntity<?> emailConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
         AuthenticationResponse authenticationResponse = 
-            customerUserAuthenticationService.emailConfirmationCodeAuthenticate(sessionId, dto.code());
+            authenticationService.emailConfirmationCodeAuthenticate(sessionId, dto.code());
         
         return authenticationResponse.authenticated() 
             ? ResponseEntity.ok().body(authenticationResponse)
@@ -77,7 +77,7 @@ public class CustomerUserAuthenticationController {
     @PostMapping("/confirmation-phone-number/{sessionId}")
     public ResponseEntity<?> phoneNumberConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
         AuthenticationResponse authenticationResponse = 
-            customerUserAuthenticationService.phoneNumberConfirmationCodeAuthenticate(sessionId, dto.code());
+            authenticationService.phoneNumberConfirmationCodeAuthenticate(sessionId, dto.code());
         
         return authenticationResponse.authenticated() 
             ? ResponseEntity.ok().body(authenticationResponse)
@@ -87,7 +87,7 @@ public class CustomerUserAuthenticationController {
     @PostMapping("/confirmation-authenticator-app/{sessionId}")
     public ResponseEntity<?> authenticatorAppConfirmationCodeAuthenticate(@PathVariable String sessionId, @Valid @RequestBody ConfirmationCodeDto dto) {
         AuthenticationResponse authenticationResponse = 
-            customerUserAuthenticationService.authenticatorAppConfirmationCodeAuthenticate(sessionId, dto.code());
+            authenticationService.authenticatorAppConfirmationCodeAuthenticate(sessionId, dto.code());
         
         return authenticationResponse.authenticated() 
             ? ResponseEntity.ok().body(authenticationResponse)
@@ -96,25 +96,25 @@ public class CustomerUserAuthenticationController {
 
     @PostMapping("/send-email-code/{sessionId}")
     public ResponseEntity<?> sendEmailConfirmationCodeForAuthSession(@PathVariable String sessionId) {
-        customerUserAuthenticationService.sendEmailConfirmationCodeForAuthSession(sessionId);
+        authenticationService.sendEmailConfirmationCodeForAuthSession(sessionId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/send-phone-number-code/{sessionId}")
     public ResponseEntity<?> sendPhoneNumberConfirmationCodeForAuthSession(@PathVariable String sessionId) {
-        customerUserAuthenticationService.sendPhoneNumberConfirmationCodeForAuthSession(sessionId);
+        authenticationService.sendPhoneNumberConfirmationCodeForAuthSession(sessionId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/refresh-access-token")
     public ResponseEntity<?> refreshAccessToken(@Valid @RequestBody RefreshTokenDto dto) {
-        String accessToken = customerUserAuthenticationService.refreshAccessToken(dto.refreshToken());
+        String accessToken = authenticationService.refreshAccessToken(dto.refreshToken());
         return ResponseEntity.ok().body(new AccessTokenDto(accessToken));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
-        customerUserAuthenticationService.logout();
+        authenticationService.logout();
         return ResponseEntity.noContent().build();
     }
 }

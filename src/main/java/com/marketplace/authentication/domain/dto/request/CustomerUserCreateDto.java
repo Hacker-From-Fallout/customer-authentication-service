@@ -4,6 +4,7 @@ import java.util.EnumSet;
 
 import com.marketplace.authentication.domain.authorities.CustomerUserAuthority;
 import com.marketplace.authentication.domain.authorities.CustomerUserRole;
+import com.marketplace.authentication.validation.annotations.NotEmail;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -24,6 +25,7 @@ public record CustomerUserCreateDto(
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    @NotEmail
     String username,
 
     @NotBlank(message = "Email is required")

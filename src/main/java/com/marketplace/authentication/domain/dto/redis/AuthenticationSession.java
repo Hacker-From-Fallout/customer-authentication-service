@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerUserAuthenticationSession implements Authentication  {
+public class AuthenticationSession implements Authentication  {
     private CustomerUser principal;
     private boolean authenticated = false;
     private boolean emailFactorAuthPassed;
@@ -30,7 +30,7 @@ public class CustomerUserAuthenticationSession implements Authentication  {
     private byte codeEntryAttemptsRemaining  = 5;
     private byte resendAttemptsRemaining = 5;
 
-    public CustomerUserAuthenticationSession(CustomerUser customerUser) {
+    public AuthenticationSession(CustomerUser customerUser) {
         this.principal = customerUser;
 
         this.emailFactorAuthPassed = 

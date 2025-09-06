@@ -3,7 +3,6 @@ package com.marketplace.authentication.services;
 import java.util.UUID;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,17 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.marketplace.authentication.domain.dto.kafka.CustomerProfileCreateDto;
 import com.marketplace.authentication.domain.dto.kafka.EmailConfirmationCodeDto;
 import com.marketplace.authentication.domain.dto.kafka.PhoneNumberConfirmationCodeDto;
-import com.marketplace.authentication.domain.dto.redis.CustomerUserRegistrationSession;
+import com.marketplace.authentication.domain.dto.redis.RegistrationSession;
 import com.marketplace.authentication.domain.dto.request.ConfirmationRegistrarionCodesDto;
 import com.marketplace.authentication.domain.dto.request.CustomerUserCreateDto;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 import com.marketplace.authentication.exception.exceptions.TooManyAttemptsException;
 import com.marketplace.authentication.exception.exceptions.VerificationRegistrationCodesException;
 import com.marketplace.authentication.producers.ConfirmationProducer;
-import com.marketplace.authentication.producers.CustomerUserProducer;
+import com.marketplace.authentication.producers.CustomerProfileProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.security.CryptoUtils;
-import com.marketplace.authentication.security.CustomerUserRegistrationSessionService;
+import com.marketplace.authentication.security.RegistrationSessionService;
 import com.marketplace.authentication.security.OtpService;
 import com.marketplace.authentication.security.Token;
 import com.marketplace.authentication.security.Tokens;
@@ -31,23 +30,20 @@ import com.marketplace.authentication.security.Tokens;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DefaultCustomerUserRegistrationService implements CustomerUserRegistrationService {
+public class DefaultRegistrationService implements RegistrationService {
 
     private final CustomerUserService customerUserService;
-    private final CustomerUserRegistrationSessionService customerUserRegistrationSessionService;
+    private final RegistrationSessionService registrationSessionService;
     private final OtpService otpService;
     private final CryptoUtils cryptoUtils;
     private final ConfirmationProducer confirmationProducer;
     private final CustomerUserRepository customerUserRepository;
-    private final CustomerUserProducer customerUserProducer;
+    private final CustomerProfileProducer customerProfileProducer;
     private final PasswordEncoder passwordEncoder;
     private final Function<Authentication, Token> refreshTokenFactory;
     private final Function<Token, Token> accessTokenFactory;
     private final Function<Token, String> refreshTokenStringSerializer;
     private final Function<Token, String> accessTokenStringSerializer;
-
-    @Value("${crypto.secret-key-aes}")
-    private String secretKeyAES;
 
     @Override
     @Transactional
@@ -66,7 +62,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
         String encryptedEmailConfirmationCodeSecret = cryptoUtils.encrypt(emailConfirmationCodeSecret);
         String encryptedPhoneNumberConfirmationCodeSecret = cryptoUtils.encrypt(phoneNumberConfirmationCodeSecret);
 
-        CustomerUserRegistrationSession session = CustomerUserRegistrationSession.builder()
+        RegistrationSession session = RegistrationSession.builder()
             .firstName(dto.firstName())
             .lastName(dto.lastName())
             .username(dto.username())
@@ -86,7 +82,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
             .encryptedPhoneNumberConfirmationCodeSecret(encryptedPhoneNumberConfirmationCodeSecret)
             .build();
 
-        customerUserRegistrationSessionService.saveSession(sessionId.toString(), session);
+        registrationSessionService.saveSession(sessionId.toString(), session);
 
         confirmationProducer.emailConfirmation(emailConfirmationCodeDto);
         confirmationProducer.phoneNumberConfirmation(phoneNumberConfirmationCodeDto);
@@ -103,10 +99,10 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
     @Transactional
     public Tokens confirmationRegistration(String sessionId, ConfirmationRegistrarionCodesDto dto) {
 
-        CustomerUserRegistrationSession session = customerUserRegistrationSessionService.getSession(sessionId);
+        RegistrationSession session = registrationSessionService.getSession(sessionId);
 
         if (session.getCodeEntryAttemptsRemaining() == 0) {
-            customerUserRegistrationSessionService.deleteSession(sessionId);
+            registrationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток ввода кода. Попробуйте позже.");
         }
 
@@ -122,7 +118,7 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
 
         if (!(emailConfirmationCodeValid && phoneNumberConfirmationCodeValid)) {
             session.decrementCodeEntryAttempts();
-            customerUserRegistrationSessionService.updateSession(sessionId, session);
+            registrationSessionService.updateSession(sessionId, session);
             throw new VerificationRegistrationCodesException("Коды просрочены или введены неправильно.");
         }
 
@@ -152,8 +148,8 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
             session.getEmail(),
             session.getPhoneNumber());
 
-        customerUserProducer.createProfile(profileDto);
-        customerUserRegistrationSessionService.deleteSession(sessionId);
+        customerProfileProducer.createProfile(profileDto);
+        registrationSessionService.deleteSession(sessionId);
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
             customerUser,
@@ -180,15 +176,15 @@ public class DefaultCustomerUserRegistrationService implements CustomerUserRegis
     @Transactional
     public void resendConfirmationRegistrationCodes(String sessionId) {
 
-        CustomerUserRegistrationSession session = customerUserRegistrationSessionService.getSession(sessionId);
+        RegistrationSession session = registrationSessionService.getSession(sessionId);
 
         if (session.getResendAttemptsRemaining() == 0) {
-            customerUserRegistrationSessionService.deleteSession(sessionId);
+            registrationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток запросить новые коды подтверждения. Попробуйте позже.");
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserRegistrationSessionService.updateSession(sessionId, session);
+        registrationSessionService.updateSession(sessionId, session);
 
         String encryptedEmailConfirmationCodeSecret = session.getEncryptedEmailConfirmationCodeSecret();
         String encryptedPhoneNumberConfirmationCodeSecret = session.getEncryptedPhoneNumberConfirmationCodeSecret();

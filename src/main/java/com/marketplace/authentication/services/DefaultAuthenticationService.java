@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.marketplace.authentication.domain.dto.kafka.EmailConfirmationCodeDto;
 import com.marketplace.authentication.domain.dto.kafka.PhoneNumberConfirmationCodeDto;
 import com.marketplace.authentication.domain.dto.redis.AuthenticatorAppConfirmationCodeAuthenticationSession;
-import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticationSession;
+import com.marketplace.authentication.domain.dto.redis.AuthenticationSession;
 import com.marketplace.authentication.domain.dto.redis.EmailConfirmationCodeAuthenticationSession;
 import com.marketplace.authentication.domain.dto.redis.FailedLoginAttemptsSession;
 import com.marketplace.authentication.domain.dto.redis.PhoneNumberConfirmationCodeAuthenticationSession;
@@ -29,7 +28,7 @@ import com.marketplace.authentication.producers.ConfirmationProducer;
 import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
-import com.marketplace.authentication.security.CustomerUserAuthenticationSessionService;
+import com.marketplace.authentication.security.AuthenticationSessionService;
 import com.marketplace.authentication.security.FailedLoginAttemptsSessionService;
 import com.marketplace.authentication.security.OtpService;
 import com.marketplace.authentication.security.Token;
@@ -38,11 +37,11 @@ import com.marketplace.authentication.security.Tokens;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DefaultCustomerUserAuthenticationService implements CustomerUserAuthenticationService {
+public class DefaultAuthenticationService implements AuthenticationService {
 
     private final CustomerUserRepository customerUserRepository;
     private final FailedLoginAttemptsSessionService failedLoginAttemptsSessionService;
-    private final CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService;
+    private final AuthenticationSessionService authenticationSessionService;
     private final BlacklistTokenService blacklistTokenService;
     private final AuthenticationManager authenticationManager;
     private final OtpService otpService;
@@ -53,9 +52,6 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     private final Function<Token, String> refreshTokenJweStringSerializer;
     private final Function<Token, String> accessTokenJwsStringSerializer;
     private final Function<String, Token> refreshTokenJweStringDeserializer;
-
-    @Value("${crypto.secret-key-aes}")
-    private String secretKeyAES;
 
     @Override
     @Transactional
@@ -113,10 +109,10 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
 
         UUID sessionId = UUID.randomUUID();
 
-        CustomerUserAuthenticationSession session = 
-            new CustomerUserAuthenticationSession((CustomerUser) authentication.getPrincipal());
+        AuthenticationSession session = 
+            new AuthenticationSession((CustomerUser) authentication.getPrincipal());
 
-        customerUserAuthenticationSessionService.
+        authenticationSessionService.
             saveSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
@@ -132,11 +128,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     @Override
     @Transactional
     public AuthenticationResponse emailConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
-        CustomerUserAuthenticationSession session = 
-            customerUserAuthenticationSessionService.getSession(sessionId);
+        AuthenticationSession session = 
+            authenticationSessionService.getSession(sessionId);
 
         if (session.getCodeEntryAttemptsRemaining() == 0) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток ввода кода. Попробуйте позже.");
         }
 
@@ -151,12 +147,12 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session);
+            authenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
         if (authentication.isAuthenticated()) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -175,11 +171,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
 
-        session = (CustomerUserAuthenticationSession) authentication;
+        session = (AuthenticationSession) authentication;
 
         session.setEmailConfirmationCode(null);
 
-        customerUserAuthenticationSessionService.
+        authenticationSessionService.
             updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
@@ -195,11 +191,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     @Override
     @Transactional
     public AuthenticationResponse phoneNumberConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
-        CustomerUserAuthenticationSession session = 
-            customerUserAuthenticationSessionService.getSession(sessionId);
+        AuthenticationSession session = 
+            authenticationSessionService.getSession(sessionId);
 
         if (session.getCodeEntryAttemptsRemaining() == 0) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток ввода кода. Попробуйте позже.");
         }
 
@@ -214,12 +210,12 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session);
+            authenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
         if (authentication.isAuthenticated()) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -238,11 +234,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
 
-        session = (CustomerUserAuthenticationSession) authentication;
+        session = (AuthenticationSession) authentication;
 
         session.setPhoneNumberConfirmationCode(null);
 
-        customerUserAuthenticationSessionService.
+        authenticationSessionService.
             updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
@@ -258,11 +254,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     @Override
     @Transactional
     public AuthenticationResponse authenticatorAppConfirmationCodeAuthenticate(String sessionId, String confirmationCode) {
-        CustomerUserAuthenticationSession session = 
-            customerUserAuthenticationSessionService.getSession(sessionId);
+        AuthenticationSession session = 
+            authenticationSessionService.getSession(sessionId);
 
         if (session.getCodeEntryAttemptsRemaining() == 0) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток ввода кода. Попробуйте позже.");
         }
 
@@ -279,12 +275,12 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             authentication = authenticationManager.authenticate(authenticationSession);
         } catch (BadCredentialsException exception) {
             session.decrementCodeEntryAttempts();
-            customerUserAuthenticationSessionService.updateSession(sessionId, session);
+            authenticationSessionService.updateSession(sessionId, session);
             throw new InvalidConfirmationCodeException(exception.getMessage(), exception);
         }
 
         if (authentication.isAuthenticated()) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -303,11 +299,11 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
             return new AuthenticationResponse(null, true, true, true, true, tokens);
         }
 
-        session = (CustomerUserAuthenticationSession) authentication;
+        session = (AuthenticationSession) authentication;
 
         session.setAuthenticatorAppConfirmationCode(null);
 
-        customerUserAuthenticationSessionService.
+        authenticationSessionService.
             updateSession(sessionId.toString(), session);
 
         return new AuthenticationResponse(
@@ -323,16 +319,16 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     @Override
     @Transactional
     public void sendEmailConfirmationCodeForAuthSession(String sessionId) {
-        CustomerUserAuthenticationSession session = 
-            customerUserAuthenticationSessionService.getSession(sessionId);
+        AuthenticationSession session = 
+            authenticationSessionService.getSession(sessionId);
 
         if (session.getResendAttemptsRemaining() == 0) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток запросить новые коды подтверждения. Попробуйте позже.");
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserAuthenticationSessionService.updateSession(sessionId, session);
+        authenticationSessionService.updateSession(sessionId, session);
 
         String encryptedEmailConfirmationCodeSecret = session.getPrincipal().getEncryptedEmailConfirmationCodeSecret();
         String emailConfirmationCodeSecret = cryptoUtils.decrypt(encryptedEmailConfirmationCodeSecret);
@@ -350,16 +346,16 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     @Override
     @Transactional
     public void sendPhoneNumberConfirmationCodeForAuthSession(String sessionId) {
-        CustomerUserAuthenticationSession session = 
-            customerUserAuthenticationSessionService.getSession(sessionId);
+        AuthenticationSession session = 
+            authenticationSessionService.getSession(sessionId);
 
         if (session.getResendAttemptsRemaining() == 0) {
-            customerUserAuthenticationSessionService.deleteSession(sessionId);
+            authenticationSessionService.deleteSession(sessionId);
             throw new TooManyAttemptsException("Достигнут лимит попыток запросить новые коды подтверждения. Попробуйте позже.");
         }
 
         session.decrementResendAttemptsRemaining();
-        customerUserAuthenticationSessionService.updateSession(sessionId, session);
+        authenticationSessionService.updateSession(sessionId, session);
 
         String encryptedPhoneNumberConfirmationCodeSecret = session.getPrincipal().getEncryptedPhoneNumberConfirmationCodeSecret();
         String phoneNumberConfirmationCodeSecret = cryptoUtils.decrypt(encryptedPhoneNumberConfirmationCodeSecret);

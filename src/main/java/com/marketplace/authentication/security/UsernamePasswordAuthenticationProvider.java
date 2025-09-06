@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.marketplace.authentication.domain.dto.redis.CustomerUserAuthenticationSession;
+import com.marketplace.authentication.domain.dto.redis.AuthenticationSession;
 import com.marketplace.authentication.domain.entities.CustomerUser;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
         if (passwordEncoder.matches(password, customerUser.getPassword())) {
             if (customerUser.isEmailFactorAuthEnabled() || customerUser.isPhoneNumberFactorAuthEnabled() || customerUser.isAuthenticatorAppFactorAuthEnabled()) {
-                return new CustomerUserAuthenticationSession(customerUser);
+                return new AuthenticationSession(customerUser);
             }
 
             return new UsernamePasswordAuthenticationToken(customerUser, null, customerUser.getAuthorities());

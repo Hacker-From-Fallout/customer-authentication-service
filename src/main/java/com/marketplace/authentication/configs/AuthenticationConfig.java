@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,7 +16,7 @@ import com.marketplace.authentication.repositories.CustomerUserRepository;
 import com.marketplace.authentication.security.AuthenticatorAppConfirmationCodeAuthenticationProvider;
 import com.marketplace.authentication.security.BlacklistTokenService;
 import com.marketplace.authentication.security.CryptoUtils;
-import com.marketplace.authentication.security.CustomerUserAuthenticationSessionService;
+import com.marketplace.authentication.security.AuthenticationSessionService;
 import com.marketplace.authentication.security.DefaultAccessTokenFactory;
 import com.marketplace.authentication.security.DefaultAuthenticationManager;
 import com.marketplace.authentication.security.DefaultRefreshTokenFactory;
@@ -27,8 +26,8 @@ import com.marketplace.authentication.security.OtpService;
 import com.marketplace.authentication.security.PhoneNumberConfirmationCodeAuthenticationProvider;
 import com.marketplace.authentication.security.Token;
 import com.marketplace.authentication.security.UsernamePasswordAuthenticationProvider;
-import com.marketplace.authentication.services.CustomerUserAuthenticationService;
-import com.marketplace.authentication.services.DefaultCustomerUserAuthenticationService;
+import com.marketplace.authentication.services.AuthenticationService;
+import com.marketplace.authentication.services.DefaultAuthenticationService;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -37,7 +36,7 @@ public class AuthenticationConfig {
 
     private final CustomerUserRepository customerUserRepository;
     private final FailedLoginAttemptsSessionService failedLoginAttemptsSessionService;
-    private final CustomerUserAuthenticationSessionService customerUserAuthenticationSessionService;
+    private final AuthenticationSessionService authenticationSessionService;
     private final BlacklistTokenService blacklistTokenService;
     private final OtpService otpService;
     private final CryptoUtils cryptoUtils;
@@ -46,15 +45,6 @@ public class AuthenticationConfig {
     private final PasswordEncoder passwordEncoder;
     private final DefaultRefreshTokenFactory refreshTokenFactory;
     private final DefaultAccessTokenFactory accessTokenFactory;
-
-    @Value("${crypto.secret-key-aes}")
-    private String secretKeyAES;
-
-    @Value("${jwt.access-token-key}") 
-    private String accessTokenKey;
-
-    @Value("${jwt.refresh-token-key}") 
-    private String refreshTokenKey;
 
     @Bean 
     public AuthenticationProvider usernamePasswordAuthenticationProvider() {
@@ -82,16 +72,16 @@ public class AuthenticationConfig {
     }
 
     @Bean
-    public CustomerUserAuthenticationService customerUserAuthenticationService(
+    public AuthenticationService customerUserAuthenticationService(
         @Qualifier("refreshTokenJweStringSerializer") Function<Token, String> refreshTokenJweStringSerializer,
         @Qualifier("accessTokenJwsStringSerializer") Function<Token, String> accessTokenJwsStringSerializer,
         @Qualifier("refreshTokenJweStringDeserializer") Function<String, Token> refreshTokenJweStringDeserializer,
         AuthenticationManager authenticationManager
     ) {
-        return new DefaultCustomerUserAuthenticationService(
+        return new DefaultAuthenticationService(
             customerUserRepository,
             failedLoginAttemptsSessionService,
-            customerUserAuthenticationSessionService,
+            authenticationSessionService,
             blacklistTokenService,
             authenticationManager,
             otpService,

@@ -3,7 +3,7 @@ package com.marketplace.authentication.services;
 import com.marketplace.authentication.domain.dto.request.CustomerUserAuthenticationDto;
 import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 
-public interface CustomerUserAuthenticationService {
+public interface AuthenticationService {
     AuthenticationResponse usernamePasswordAuthenticate(CustomerUserAuthenticationDto dto);
     AuthenticationResponse emailConfirmationCodeAuthenticate(String sessionId, String confirmationCode);
     AuthenticationResponse phoneNumberConfirmationCodeAuthenticate(String sessionId, String confirmationCode);

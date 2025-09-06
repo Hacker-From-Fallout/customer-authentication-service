@@ -1,8 +1,8 @@
 package com.marketplace.authentication.domain.dto.redis;
 
-public class AuthenticatorAppConfirmationCodeAuthenticationSession extends CustomerUserAuthenticationSession {
+public class AuthenticatorAppConfirmationCodeAuthenticationSession extends AuthenticationSession {
 
-    public AuthenticatorAppConfirmationCodeAuthenticationSession(CustomerUserAuthenticationSession session) {
+    public AuthenticatorAppConfirmationCodeAuthenticationSession(AuthenticationSession session) {
         if (session != null) {
             this.setPrincipal(session.getPrincipal());
             this.setAuthenticated(session.isAuthenticated());
