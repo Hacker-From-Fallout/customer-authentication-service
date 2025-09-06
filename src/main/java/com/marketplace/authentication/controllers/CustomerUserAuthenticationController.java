@@ -22,12 +22,9 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindException;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 
 @RestController
 @RequiredArgsConstructor
@@ -38,34 +35,16 @@ public class CustomerUserAuthenticationController {
     private final CustomerUserRegistrationService customerUserRegistrationService;
 
     @PostMapping("/initiate-registration")
-    public ResponseEntity<?> initiateRegistration(@Valid @RequestBody CustomerUserCreateDto dto, 
-                            BindingResult bindingResult) throws BindException {
-        if (bindingResult.hasErrors()) {
-            if (bindingResult instanceof BindException error) {
-                throw error;
-            } else {
-                throw new BindException(bindingResult);
-            }
-        }
-
+    public ResponseEntity<?> initiateRegistration(@Valid @RequestBody CustomerUserCreateDto dto) {
         UUID sessionId = customerUserRegistrationService.initiateRegistration(dto);
-        
         return ResponseEntity.status(HttpStatus.OK).body(new RegistrationSessionId(sessionId.toString()));
     }
 
     @PostMapping("/confirmation-registration/{sessionId}")
-    public ResponseEntity<?> confirmationRegistration(@PathVariable String sessionId, @Valid @RequestBody ConfirmationRegistrarionCodesDto dto, 
-                            BindingResult bindingResult) throws BindException {
-        if (bindingResult.hasErrors()) {
-            if (bindingResult instanceof BindException error) {
-                throw error;
-            } else {
-                throw new BindException(bindingResult);
-            }
-        }
+    public ResponseEntity<?> confirmationRegistration(@PathVariable String sessionId, 
+        @Valid @RequestBody ConfirmationRegistrarionCodesDto dto) {
 
         Tokens tokens = customerUserRegistrationService.confirmationRegistration(sessionId, dto);
-        
         return ResponseEntity.status(HttpStatus.CREATED).body(tokens);
     }
 
@@ -134,8 +113,8 @@ public class CustomerUserAuthenticationController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@Valid @RequestBody RefreshTokenDto dto) {
-        customerUserAuthenticationService.logout(dto.refreshToken());
+    public ResponseEntity<?> logout() {
+        customerUserAuthenticationService.logout();
         return ResponseEntity.noContent().build();
     }
 }

@@ -396,14 +396,12 @@ public class DefaultCustomerUserAuthenticationService implements CustomerUserAut
     }
 
     @Override
-    public void logout(String refreshToken) {
-        Token token = refreshTokenJweStringDeserializer.apply(refreshToken);
+    public void logout() {
 
-        if (token == null) {
-            throw new InvalidRefreshTokenException("Invalid refresh token");
-        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
 
-        blacklistTokenService.saveToken(token.id().toString());
+        blacklistTokenService.saveToken(customerUser.getTokenId());
     }
 
     private void addTokenInBlacklist(Long id)  {

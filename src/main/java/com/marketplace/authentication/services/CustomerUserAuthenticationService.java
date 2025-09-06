@@ -11,5 +11,5 @@ public interface CustomerUserAuthenticationService {
     void sendEmailConfirmationCodeForAuthSession(String sessionId);
     void sendPhoneNumberConfirmationCodeForAuthSession(String sessionId);
     String refreshAccessToken(String refreshToken);
-    void logout(String refreshToken);
+    void logout();
 }
