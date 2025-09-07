@@ -65,6 +65,70 @@ public class SecurityConfig {
         return http.build();
     } 
 
+    // @Bean
+    // public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    //     http
+    //         .authorizeHttpRequests(authorize -> authorize
+    //             // CustomerUserController endpoints
+    //             .requestMatchers(HttpMethod.GET, "/api").hasAnyAuthority("CUSTOMER_USER_GET_ALL")
+    //             .requestMatchers(HttpMethod.GET, "/api/{id}").hasAnyAuthority("CUSTOMER_USER_GET_BY_ID")
+    //             .requestMatchers(HttpMethod.GET, "/api/username/{username}").hasAnyAuthority("CUSTOMER_USER_GET_BY_USERNAME")
+    //             .requestMatchers(HttpMethod.GET, "/api/email/{email}").hasAnyAuthority("CUSTOMER_USER_GET_BY_EMAIL")
+    //             .requestMatchers(HttpMethod.GET, "/api/phone/{phoneNumber}").hasAnyAuthority("CUSTOMER_USER_GET_BY_PHONE")
+    //             .requestMatchers(HttpMethod.POST, "/api").hasAnyAuthority("CUSTOMER_USER_CREATE")
+    //             .requestMatchers(HttpMethod.PUT, "/api/{id}").hasAnyAuthority("CUSTOMER_USER_UPDATE")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/username").hasAnyAuthority("CUSTOMER_USER_UPDATE_USERNAME")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/email").hasAnyAuthority("CUSTOMER_USER_UPDATE_EMAIL")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/phone-number").hasAnyAuthority("CUSTOMER_USER_UPDATE_PHONE")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/password").hasAnyAuthority("CUSTOMER_USER_UPDATE_PASSWORD")
+    //             .requestMatchers(HttpMethod.PUT, "/api/{userId}/roles").hasAnyAuthority("CUSTOMER_USER_UPDATE_ROLES")
+    //             .requestMatchers(HttpMethod.PUT, "/api/{userId}/authorities").hasAnyAuthority("CUSTOMER_USER_UPDATE_AUTHORITIES")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/accountNonExpired").hasAnyAuthority("CUSTOMER_USER_UPDATE_ACCOUNT_NON_EXPIRED")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/account-non-locked").hasAnyAuthority("CUSTOMER_USER_UPDATE_ACCOUNT_NON_LOCKED")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/credentials-non-expired").hasAnyAuthority("CUSTOMER_USER_UPDATE_CREDENTIALS_NON_EXPIRED")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/enabled").hasAnyAuthority("CUSTOMER_USER_UPDATE_ENABLED")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/email-factor-auth-enable").hasAnyAuthority("CUSTOMER_USER_ENABLE_EMAIL_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/email-factor-auth-disable").hasAnyAuthority("CUSTOMER_USER_DISABLE_EMAIL_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/phone-number-factor-auth-enable").hasAnyAuthority("CUSTOMER_USER_ENABLE_PHONE_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/phone-number-factor-auth-disable").hasAnyAuthority("CUSTOMER_USER_DISABLE_PHONE_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/authenticator-app-factor-auth-enable").hasAnyAuthority("CUSTOMER_USER_ENABLE_AUTH_APP_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.POST, "/api/{id}/authenticator-app-factor-auth-disable").hasAnyAuthority("CUSTOMER_USER_DISABLE_AUTH_APP_FACTOR_AUTH")
+    //             .requestMatchers(HttpMethod.PATCH, "/api/{id}/last-login-date").hasAnyAuthority("CUSTOMER_USER_UPDATE_LAST_LOGIN_DATE")
+    //             .requestMatchers(HttpMethod.POST, "/api/{userId}/roles").hasAnyAuthority("CUSTOMER_USER_ADD_ROLE")
+    //             .requestMatchers(HttpMethod.POST, "/api/{userId}/roles/batch").hasAnyAuthority("CUSTOMER_USER_ADD_ROLES")
+    //             .requestMatchers(HttpMethod.DELETE, "/api/{userId}/roles").hasAnyAuthority("CUSTOMER_USER_REMOVE_ROLE")
+    //             .requestMatchers(HttpMethod.DELETE, "/api/{userId}/roles/batch").hasAnyAuthority("CUSTOMER_USER_REMOVE_ROLES")
+    //             .requestMatchers(HttpMethod.POST, "/api/{userId}/authorities").hasAnyAuthority("CUSTOMER_USER_ADD_AUTHORITY")
+    //             .requestMatchers(HttpMethod.POST, "/api/{userId}/authorities/batch").hasAnyAuthority("CUSTOMER_USER_ADD_AUTHORITIES")
+    //             .requestMatchers(HttpMethod.DELETE, "/api/{userId}/authorities").hasAnyAuthority("CUSTOMER_USER_REMOVE_AUTHORITY")
+    //             .requestMatchers(HttpMethod.DELETE, "/api/{userId}/authorities/batch").hasAnyAuthority("CUSTOMER_USER_REMOVE_AUTHORITIES")
+    //             .requestMatchers(HttpMethod.DELETE, "/api/{id}").hasAnyAuthority("CUSTOMER_USER_DELETE")
+
+    //             // AuthenticationController endpoints
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/initiate-registration").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/confirmation-registration/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/resend-confirmation-registration/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/login").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/confirmation-email/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/confirmation-phone-number/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/confirmation-authenticator-app/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/send-email-code/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/send-phone-number-code/{sessionId}").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/refresh-access-token").anonymous()
+    //             .requestMatchers(HttpMethod.POST, "/api/auth/logout").hasAnyAuthority("AUTH_LOGOUT")
+
+    //             .anyRequest().permitAll()
+    //         )
+    //         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    //         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+    //         .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+    //             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage());
+    //         }))
+    //         .csrf(CsrfConfigurer::disable);
+
+    //     return http.build();
+    // }
+
     @Bean
     public PasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
