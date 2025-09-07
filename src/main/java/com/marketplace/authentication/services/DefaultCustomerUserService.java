@@ -402,17 +402,18 @@ public class DefaultCustomerUserService implements CustomerUserService {
         }
     }
 
+    @Override
+    @Transactional
+    public void deleteById(Long id){
+        addTokenInBlacklist(id);
+        customerUserRepository.deleteById(id);
+        customerProfileProducer.deleteProfile(id);
+    }
+
     public void isUsernameEmailPhoneAvailable(String username, String email, String phoneNumber) {
         existsByUsername(username);
         existsByEmail(email);
         existsByPhoneNumber(phoneNumber);
-    }
-
-    @Override
-    @Transactional
-    public void deleteById(Long id){
-        customerUserRepository.deleteById(id);
-        customerProfileProducer.deleteProfile(id);
     }
 
     private void existsByUsername(String username) {

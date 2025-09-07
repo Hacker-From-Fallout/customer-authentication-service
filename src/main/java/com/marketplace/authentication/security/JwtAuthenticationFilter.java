@@ -10,8 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.marketplace.authentication.domain.entities.CustomerUser;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,10 +60,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        CustomerUser customerUser = (CustomerUser) userDetailsService.loadUserByUsername(accessToken.subject());
+        TokenCustomerUserDetails tokenCustomerUserDetails = new TokenCustomerUserDetails(
+            accessToken.subject(),
+            accessToken.authorities(),
+            accessToken.id().toString()
+        );
 
         UsernamePasswordAuthenticationToken authentication = 
-            new UsernamePasswordAuthenticationToken(customerUser, null, customerUser.getAuthorities());
+            new UsernamePasswordAuthenticationToken(
+                tokenCustomerUserDetails, null, tokenCustomerUserDetails.getAuthorities());
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

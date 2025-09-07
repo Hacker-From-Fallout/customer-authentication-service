@@ -32,6 +32,7 @@ import com.marketplace.authentication.security.AuthenticationSessionService;
 import com.marketplace.authentication.security.FailedLoginAttemptsSessionService;
 import com.marketplace.authentication.security.OtpService;
 import com.marketplace.authentication.security.Token;
+import com.marketplace.authentication.security.TokenCustomerUserDetails;
 import com.marketplace.authentication.security.Tokens;
 
 import lombok.RequiredArgsConstructor;
@@ -395,9 +396,9 @@ public class DefaultAuthenticationService implements AuthenticationService {
     public void logout() {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomerUser customerUser = (CustomerUser) authentication.getPrincipal();
+        TokenCustomerUserDetails tokenCustomerUserDetails = (TokenCustomerUserDetails) authentication.getPrincipal();
 
-        blacklistTokenService.saveToken(customerUser.getTokenId());
+        blacklistTokenService.saveToken(tokenCustomerUserDetails.getTokenId());
     }
 
     private void addTokenInBlacklist(Long id)  {

@@ -25,7 +25,7 @@ public class AccessTokenJwsStringDeserializer implements Function<String, Token>
 
             if (signedJWT.verify(jwsVerifier)) {
                 JWTClaimsSet jwtClaimsSet = signedJWT.getJWTClaimsSet();
-
+                
                 return new Token(
                     UUID.fromString(jwtClaimsSet.getJWTID()),
                     jwtClaimsSet.getSubject(),

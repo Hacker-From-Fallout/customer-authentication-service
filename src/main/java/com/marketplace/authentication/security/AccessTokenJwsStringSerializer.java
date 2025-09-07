@@ -32,7 +32,7 @@ public class AccessTokenJwsStringSerializer implements Function<Token, String> {
             .subject(token.subject())
             .issueTime(Date.from(token.createdAt()))
             .expirationTime(Date.from(token.expiresAt()))
-            .claim("authotities", token.authorities())
+            .claim("authorities", token.authorities())
             .build();
 
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);

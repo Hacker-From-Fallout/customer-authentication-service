@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
-public class KafkaCustomerTopicConfig {
+public class KafkaCustomerProfileTopicConfig {
 
     @Value("${spring.kafka.topics.customer.create-profile}")
     private String CREATE_PROFILE_CUSTOMER_TOPIC;
