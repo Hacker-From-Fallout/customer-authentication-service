@@ -5,7 +5,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -16,14 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AccessTokenJwsStringDeserializer implements Function<String, Token> {
 
-    private final JWSVerifier jwsVerifier;
+    private final RSASSAVerifier rsassaVerifier;
 
     @Override
     public Token apply(String string) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(string);
 
-            if (signedJWT.verify(jwsVerifier)) {
+            if (signedJWT.verify(rsassaVerifier)) {
                 JWTClaimsSet jwtClaimsSet = signedJWT.getJWTClaimsSet();
                 
                 return new Token(

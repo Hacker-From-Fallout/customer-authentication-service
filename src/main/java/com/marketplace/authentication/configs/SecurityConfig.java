@@ -1,5 +1,7 @@
 package com.marketplace.authentication.configs;
 
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.util.function.Function;
 
@@ -27,17 +29,21 @@ import com.marketplace.authentication.security.DefaultRefreshTokenFactory;
 import com.marketplace.authentication.security.JwtAuthenticationFilter;
 import com.marketplace.authentication.security.RefreshTokenJweStringDeserializer;
 import com.marketplace.authentication.security.RefreshTokenJweStringSerializer;
+import com.marketplace.authentication.security.RsaKeyLoader;
 import com.marketplace.authentication.security.Token;
 import com.nimbusds.jose.crypto.DirectDecrypter;
 import com.nimbusds.jose.crypto.DirectEncrypter;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class SecurityConfig {
+
+    private static final String PRIVATE_KEY_PATH = "keys/private_key.pem";
+    private static final String PUBLIC_KEY_PATH = "keys/public_key.pem";
 
     @Value("${jwt.access-token-key}") 
     private String accessTokenKey;
@@ -158,8 +164,10 @@ public class SecurityConfig {
     @Qualifier("accessTokenJwsStringSerializer")
     public Function<Token, String> accessTokenJwsStringSerializer() {
         try {
+            RSAPrivateKey rsaPrivateKey = RsaKeyLoader.loadPrivateKey(PRIVATE_KEY_PATH);
+
             return new AccessTokenJwsStringSerializer(
-                new MACSigner(OctetSequenceKey.parse(accessTokenKey))
+                new RSASSASigner(rsaPrivateKey)
             );
         } catch (Exception exception) {
             throw new RuntimeException("Ошибка при создании сериализатора accessToken", exception);
@@ -182,8 +190,10 @@ public class SecurityConfig {
     @Qualifier("accessTokenJwsStringDeserializer")
     public Function<String, Token> accessTokenJwsStringDeserializer() {
         try {
+            RSAPublicKey rsaPublicKey = RsaKeyLoader.loadPublicKey(PUBLIC_KEY_PATH);
+
             return new AccessTokenJwsStringDeserializer(
-                new MACVerifier(OctetSequenceKey.parse(accessTokenKey))
+                new RSASSAVerifier(rsaPublicKey)
             );
         } catch (Exception exception) {
             throw new RuntimeException("Ошибка при создании десериализатора accessToken", exception);

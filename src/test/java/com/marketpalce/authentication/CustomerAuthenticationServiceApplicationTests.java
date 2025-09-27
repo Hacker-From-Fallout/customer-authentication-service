@@ -7,6 +7,5 @@ import org.springframework.boot.test.context.SpringBootTest;
 class CustomerAuthenticationServiceApplicationTests {
 
 	@Test
-	void contextLoads() {
-	}
+	void contextLoads() {}
 }

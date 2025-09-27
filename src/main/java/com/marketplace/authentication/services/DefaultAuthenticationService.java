@@ -401,8 +401,8 @@ public class DefaultAuthenticationService implements AuthenticationService {
         blacklistTokenService.saveToken(tokenCustomerUserDetails.getTokenId());
     }
 
-    private void addTokenInBlacklist(Long id)  {
-        String tokenId = customerUserRepository.getTokenId(id);
+    private void addTokenInBlacklist(Long userId)  {
+        String tokenId = customerUserRepository.getTokenId(userId);
         blacklistTokenService.saveToken(tokenId);
     }
 }

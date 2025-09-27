@@ -6,7 +6,7 @@ import java.util.function.Function;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -17,8 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AccessTokenJwsStringSerializer implements Function<Token, String> {
 
-    private final JWSSigner jwsSigner;
-    private JWSAlgorithm jwsAlgorithm = JWSAlgorithm.HS256;
+    private final RSASSASigner rsassaSigner;
+    private JWSAlgorithm jwsAlgorithm = JWSAlgorithm.RS256;
 
     @Override
     public String apply(Token token) {
@@ -38,7 +38,7 @@ public class AccessTokenJwsStringSerializer implements Function<Token, String> {
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
 
         try {
-            signedJWT.sign(jwsSigner);
+            signedJWT.sign(rsassaSigner);
 
             return signedJWT.serialize();
         } catch (JOSEException exception) {

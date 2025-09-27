@@ -92,47 +92,40 @@ public class DefaultCustomerUserService implements CustomerUserService {
 
     @Override
     @Transactional
-    public CustomerUser createUser(CustomerUserCreateDto customerDto) {
-        validateUniqueFields(customerDto);
+    public CustomerUser createUser(CustomerUserCreateDto dto) {
+        existsByUsername(dto.username());
+        existsByEmail(dto.email());
+        existsByPhoneNumber(dto.phoneNumber());
 
-        CustomerUser customerUser = buildCustomerUser(customerDto);
-        customerUser = customerUserRepository.save(customerUser);
+        CustomerUser customerUser = customerUserRepository.save(
+            CustomerUser.builder()
+            .username(dto.username())
+            .email(dto.email())
+            .phoneNumber(dto.phoneNumber())
+            .hashPassword(passwordEncoder.encode(dto.password()))
+            .roles(dto.roles())
+            .authorities(dto.authorities())
+            .accountNonExpired(dto.accountNonExpired())
+            .accountNonLocked(dto.accountNonLocked())
+            .credentialsNonExpired(dto.credentialsNonExpired())
+            .enabled(dto.enabled())
+            .emailFactorAuthEnabled(dto.emailFactorAuthEnabled())
+            .phoneNumberFactorAuthEnabled(dto.phoneNumberFactorAuthEnabled())
+            .authenticatorAppFactorAuthEnabled(dto.authenticatorAppFactorAuthEnabled())
+            .build()
+        );
         
         CustomerProfileCreateDto profileDto = new CustomerProfileCreateDto(
             customerUser.getId(),
-            customerDto.firstName(),
-            customerDto.lastName(),
-            customerDto.username(),
-            customerDto.email(),
-            customerDto.phoneNumber());
+            dto.firstName(),
+            dto.lastName(),
+            dto.username(),
+            dto.email(),
+            dto.phoneNumber());
 
         customerProfileProducer.createProfile(profileDto);
 
         return customerUser;
-    }
-
-    private void validateUniqueFields(CustomerUserCreateDto dto) {
-        existsByUsername(dto.username());
-        existsByEmail(dto.email());
-        existsByPhoneNumber(dto.phoneNumber());
-    }
-
-    private CustomerUser buildCustomerUser(CustomerUserCreateDto dto) {
-        return CustomerUser.builder()
-                .username(dto.username())
-                .email(dto.email())
-                .phoneNumber(dto.phoneNumber())
-                .hashPassword(passwordEncoder.encode(dto.password()))
-                .roles(dto.roles())
-                .authorities(dto.authorities())
-                .accountNonExpired(dto.accountNonExpired())
-                .accountNonLocked(dto.accountNonLocked())
-                .credentialsNonExpired(dto.credentialsNonExpired())
-                .enabled(dto.enabled())
-                .emailFactorAuthEnabled(dto.emailFactorAuthEnabled())
-                .phoneNumberFactorAuthEnabled(dto.phoneNumberFactorAuthEnabled())
-                .authenticatorAppFactorAuthEnabled(dto.authenticatorAppFactorAuthEnabled())
-                .build();
     }
 
     @Override
@@ -194,7 +187,6 @@ public class DefaultCustomerUserService implements CustomerUserService {
 
         return customerUserRepository.save(customerUser);
     }
-
 
     @Override
     @Transactional

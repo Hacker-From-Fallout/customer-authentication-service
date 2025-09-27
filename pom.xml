@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.5</version>
+		<version>3.5.6</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.marketplace</groupId>
 	<artifactId>customer-authentication-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>customer-authentication-service</name>
-	<description>Микросервис для управления аутентификацией и безопасным входом клиентов в систему</description>
+	<description>Микросервис для управления аутентификацией клиентов</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -100,6 +100,16 @@
 			<groupId>com.eatthepath</groupId>
 			<artifactId>java-otp</artifactId>
 			<version>0.4.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.70</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>1.70</version>
 		</dependency>
 
 		<!-- Development tools -->
