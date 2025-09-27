@@ -11,6 +11,7 @@ import com.marketplace.authentication.domain.dto.request.RefreshTokenDto;
 import com.marketplace.authentication.domain.dto.response.AccessTokenDto;
 import com.marketplace.authentication.domain.dto.response.AuthenticationResponse;
 import com.marketplace.authentication.domain.dto.response.RegistrationSessionId;
+import com.marketplace.authentication.security.JwkGeneratorService;
 import com.marketplace.authentication.security.Tokens;
 import com.marketplace.authentication.services.AuthenticationService;
 import com.marketplace.authentication.services.RegistrationService;
@@ -21,7 +22,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,8 +34,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/api/auth")
 public class AuthenticationController {
 
+    private static final String PUBLIC_KEY_PATH = "keys/public_key.pem"; 
+
     private final AuthenticationService authenticationService;
     private final RegistrationService registrationService;
+    private final JwkGeneratorService jwkGeneratorService = new JwkGeneratorService("my-key-id", PUBLIC_KEY_PATH);
 
     @PostMapping("/initiate-registration")
     public ResponseEntity<?> initiateRegistration(@Valid @RequestBody CustomerUserCreateDto dto) {
@@ -116,5 +122,11 @@ public class AuthenticationController {
     public ResponseEntity<?> logout() {
         authenticationService.logout();
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/public-key-jwk", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getPublicKeyJwk() {
+        String publicKey = jwkGeneratorService.getPublicKeyJwkResponse();
+        return ResponseEntity.ok().body(publicKey);
     }
 }

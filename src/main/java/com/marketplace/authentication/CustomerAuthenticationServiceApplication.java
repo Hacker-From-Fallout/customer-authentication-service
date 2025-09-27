@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 // TODO разобраться с полномочиями и ролями, разобраться с наименованием топиков в kafka
 // TODO Вынести логику создания профиля в другой метод и не вызывать ее в методе создания customer
-// TODO Переделать логику создания JWT тобы был привытный и публичный ключ.
 
 @SpringBootApplication
 public class CustomerAuthenticationServiceApplication {
